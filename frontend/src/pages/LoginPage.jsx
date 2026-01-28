@@ -52,10 +52,11 @@ const LoginPage = () => {
                     formData.fullName,
                     formData.phone
                 );
-                setSuccess('Registration successful! Redirecting...');
+                setSuccess('Registration successful! Please sign in.');
                 console.log('Registration successful:', response);
+                // Redirect to login page after registration
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    window.location.href = '/';
                 }, 1500);
             }
         } catch (err) {

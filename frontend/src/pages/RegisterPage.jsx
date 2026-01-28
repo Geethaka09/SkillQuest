@@ -54,10 +54,12 @@ const RegisterPage = () => {
                 formData.lastName,
                 formData.userName
             );
-            setSuccess('Account created successfully! Redirecting...');
+            setSuccess('Account created successfully! Please sign in.');
             console.log('Registration successful:', response);
+            // Clear the stored token so user must sign in
+            authService.logout();
             setTimeout(() => {
-                navigate('/dashboard');
+                navigate('/');
             }, 1500);
         } catch (err) {
             const message = err.response?.data?.message || 'Registration failed. Please try again.';

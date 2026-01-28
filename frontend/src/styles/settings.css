@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+.settings-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 24px;
+    font-family: 'Inter', sans-serif;
+}
+
+.settings-page h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 24px;
+}
+
+.settings-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+}
+
+/* Email Section */
+.settings-section {
+    margin-bottom: 32px;
+}
+
+.section-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+.email-display {
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+/* Notifications Section */
+.notifications-section {
+    margin-bottom: 32px;
+}
+
+.notifications-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.notifications-icon {
+    width: 48px;
+    height: 48px;
+    background: #eff6ff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notifications-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #3b82f6;
+}
+
+.notifications-text h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 4px;
+}
+
+.notifications-text p {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Toggle Options */
+.toggle-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.toggle-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.toggle-info h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px;
+}
+
+.toggle-info p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e2e8f0;
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch input:checked+.toggle-slider {
+    background-color: #3b82f6;
+}
+
+.toggle-switch input:checked+.toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* Save Section */
+.save-section {
+    display: flex;
+    justify-content: center;
+    padding-top: 8px;
+}
+
+.save-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 32px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.save-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.save-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .settings-page {
+        padding: 16px;
+    }
+
+    .settings-card {
+        padding: 24px;
+    }
+
+    .toggle-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
