@@ -5,13 +5,38 @@ import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import InitialQuizPage from './pages/InitialQuizPage';
 import { authService } from './services/api';
 
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
+// Protected Route component - checks authentication and quiz completion status
+const ProtectedRoute = ({ children, requireQuizComplete = true }) => {
   if (!authService.isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
+
+  const user = authService.getCurrentUser();
+
+  // If quiz is required and user hasn't completed it (status = 0), redirect to quiz
+  if (requireQuizComplete && user?.status == 0) {
+    return <Navigate to="/initial-quiz" replace />;
+  }
+
+  return children;
+};
+
+// Quiz Route - only for users who haven't completed the quiz
+const QuizRoute = ({ children }) => {
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  const user = authService.getCurrentUser();
+
+  // If user has already completed quiz (status = 1), redirect to dashboard
+  if (user?.status == 1) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children;
 };
 
@@ -21,6 +46,14 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/initial-quiz"
+          element={
+            <QuizRoute>
+              <InitialQuizPage />
+            </QuizRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

@@ -41,9 +41,14 @@ const LoginPage = () => {
                 );
                 setSuccess('Login successful! Redirecting...');
                 console.log('Login successful:', response);
-                // Redirect to dashboard after login
+                console.log('User status:', response.user.status, typeof response.user.status);
+                // Redirect based on user status (use == to handle string/number)
                 setTimeout(() => {
-                    window.location.href = '/dashboard';
+                    if (response.user.status == 0) {
+                        window.location.href = '/initial-quiz';
+                    } else {
+                        window.location.href = '/dashboard';
+                    }
                 }, 1500);
             } else {
                 const response = await authService.register(

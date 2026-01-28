@@ -54,12 +54,11 @@ const RegisterPage = () => {
                 formData.lastName,
                 formData.userName
             );
-            setSuccess('Account created successfully! Please sign in.');
+            setSuccess('Account created! Starting your assessment quiz...');
             console.log('Registration successful:', response);
-            // Clear the stored token so user must sign in
-            authService.logout();
+            // Redirect to initial quiz (user is already logged in with token)
             setTimeout(() => {
-                navigate('/');
+                navigate('/initial-quiz');
             }, 1500);
         } catch (err) {
             const message = err.response?.data?.message || 'Registration failed. Please try again.';

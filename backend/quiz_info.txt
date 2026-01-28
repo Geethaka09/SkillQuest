@@ -1,0 +1,40 @@
+COLUMNS:
+  q_ID (int)
+  question (text)
+  option_text (text)
+  correct_answer (text)
+  category (varchar(100))
+  difficulty_rate (varchar(50))
+
+SAMPLE ROW:
+{
+  "q_ID": 1,
+  "question": " If all cats are animals and all animals breathe, can cats breathe?",
+  "option_text": " a) Yes b) No c) Sometimes d) Cannot determine ",
+  "correct_answer": "a) Yes ",
+  "category": "Analytical Thinking",
+  "difficulty_rate": "Easy  "
+}
+
+CATEGORIES:
+  Analytical Thinking
+  Computational Thinking
+  Programming
+
+DIFFICULTIES:
+  Easy  
+  Easy
+  Moderate
+  Hard
+
+COUNTS BY CATEGORY & DIFFICULTY:
+  Analytical Thinking | Easy | 38
+  Analytical Thinking | Easy   | 2
+  Analytical Thinking | Hard | 25
+  Analytical Thinking | Moderate | 35
+  Computational Thinking | Easy | 40
+  Computational Thinking | Hard | 30
+  Computational Thinking | Moderate | 30
+  Programming | Easy | 40
+  Programming | Hard | 30
+  Programming | Moderate | 30

@@ -14,10 +14,19 @@ const DashboardPage = () => {
     ];
 
     const todayGoals = [
-        { id: 1, text: 'Complete any 3 learning items', progress: '0/3' },
-        { id: 2, text: 'Complete a graded assessment', progress: null },
-        { id: 3, text: 'Progress toward your weekly streak', progress: null },
+        { id: 1, text: 'Complete any 3 learning items', progress: 'PROGRESS: 0/3', xp: '+150 XP' },
+        { id: 2, text: 'Complete a graded assessment', progress: null, xp: '+300 XP' },
+        { id: 3, text: 'Progress toward your weekly streak', progress: null, xp: '+50 XP' },
     ];
+
+    // XP Level data
+    const xpData = {
+        title: 'ELITE EXPLORER',
+        masteryPoints: 12,
+        currentXP: 1250,
+        maxXP: 2000,
+        nextLevel: 13
+    };
 
     return (
         <Layout>
@@ -37,32 +46,76 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Stats Cards Row */}
-                <div className="stats-row">
+                <div className="stats-row three-cards">
                     {/* Current Stage Card */}
                     <div className="stat-card current-stage">
                         <div className="card-header">
                             <h3>Current Stage</h3>
-                            <span className="badge blue">65% to Expert</span>
+                            <span className="badge blue">
+                                {user?.level === 'beginner'}
+                                {user?.level === 'intermediate'}
+                                {user?.level === 'advanced'}
+                            </span>
                         </div>
-                        <p className="level-label">LEVEL 4 INTERMEDIATE</p>
+                        <p className="level-label">
+                            {user?.level === 'beginner' && ' BEGINNER'}
+                            {user?.level === 'intermediate' && ' INTERMEDIATE'}
+                            {user?.level === 'advanced' && ' ADVANCED'}
+                        </p>
                         <div className="progress-bars">
                             <div className="progress-bar-group">
-                                <div className="bar bar-1"></div>
-                                <div className="bar bar-2 current">
-                                    <span className="bar-label">CURRENT</span>
+                                {/* Bar 1 - Beginner */}
+                                <div className={`bar bar-1 ${user?.level === 'beginner' ? 'current' : 'completed'
+                                    }`}>
+                                    {user?.level === 'beginner' && <span className="bar-label">CURRENT</span>}
                                 </div>
-                                <div className="bar bar-3"></div>
+                                {/* Bar 2 - Intermediate */}
+                                <div className={`bar bar-2 ${user?.level === 'intermediate' ? 'current' :
+                                    user?.level === 'advanced' ? 'completed' : 'locked'
+                                    }`}>
+                                    {user?.level === 'intermediate' && <span className="bar-label">CURRENT</span>}
+                                </div>
+                                {/* Bar 3 - Advanced */}
+                                <div className={`bar bar-3 ${user?.level === 'advanced' ? 'current' : 'locked'
+                                    }`}>
+                                    {user?.level === 'advanced' && <span className="bar-label">CURRENT</span>}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Modules Completed Card */}
+                    {/* XP Level Card */}
+                    <div className="stat-card xp-level">
+                        <div className="card-header">
+                            <h3>XP Level</h3>
+                            <span className="trophy-icon">🏆</span>
+                        </div>
+                        <p className="level-label">{xpData.title}</p>
+                        <div className="xp-display">
+                            <div className="mastery-points">
+                                <span className="mastery-number">{xpData.masteryPoints}</span>
+                                <span className="mastery-trophy">🏅</span>
+                            </div>
+                            <p className="mastery-label">MASTERY POINTS</p>
+                        </div>
+                        <div className="xp-progress">
+                            <div className="xp-progress-header">
+                                <span>PROGRESS TO LVL {xpData.nextLevel}</span>
+                                <span className="xp-count">{xpData.currentXP} / {xpData.maxXP} XP</span>
+                            </div>
+                            <div className="xp-bar">
+                                <div className="xp-fill" style={{ width: `${(xpData.currentXP / xpData.maxXP) * 100}%` }}></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modules Card */}
                     <div className="stat-card modules-completed">
                         <div className="card-header">
-                            <h3>Modules Completed</h3>
+                            <h3>Modules</h3>
                             <span className="badge orange">⏱ 12 Days Left</span>
                         </div>
-                        <p className="level-label">ACTIVE LEARNING JOURNEY</p>
+                        <p className="level-label">LEARNING JOURNEY</p>
                         <div className="modules-progress">
                             <div className="circular-progress">
                                 <span className="progress-number">12</span>
@@ -71,15 +124,15 @@ const DashboardPage = () => {
                                     <path d="M8 12L11 15L16 9" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
-                            <p className="modules-label">OUT OF 45 MODULES</p>
+                            <p className="modules-label">OUT OF 45 ITEMS</p>
                         </div>
                         <div className="goal-progress">
                             <div className="goal-header">
                                 <span>GOAL PROGRESS</span>
-                                <span className="days-remaining">12 DAYS REMAINING</span>
+                                <span className="days-remaining">60% TIME USED</span>
                             </div>
                             <div className="goal-bar">
-                                <div className="goal-fill" style={{ width: '26%' }}></div>
+                                <div className="goal-fill" style={{ width: '60%' }}></div>
                             </div>
                         </div>
                     </div>
@@ -153,17 +206,21 @@ const DashboardPage = () => {
 
                     {/* Today's Goals */}
                     <div className="todays-goals">
-                        <h3>Today's goals</h3>
+                        <div className="goals-header">
+                            <h3>Today's goals</h3>
+                            <span className="goals-bolt">⚡</span>
+                        </div>
                         <div className="goals-list">
                             {todayGoals.map((goal) => (
                                 <div key={goal.id} className="goal-item">
                                     <svg className="goal-star" viewBox="0 0 24 24" fill="none">
                                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
-                                    <span className="goal-text">
-                                        {goal.text}
-                                        {goal.progress && <span className="goal-progress-text"> • {goal.progress}</span>}
-                                    </span>
+                                    <div className="goal-content">
+                                        <span className="goal-text">{goal.text}</span>
+                                        {goal.progress && <span className="goal-progress-text">{goal.progress}</span>}
+                                        <span className="goal-xp">{goal.xp}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>

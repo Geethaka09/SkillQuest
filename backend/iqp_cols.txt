@@ -1,0 +1,1 @@
+paper_ID | int\nq_ID | int\nstudent_ID | varchar(10)\nresponse | text

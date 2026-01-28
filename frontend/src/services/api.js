@@ -59,4 +59,17 @@ export const authService = {
     }
 };
 
+// Quiz services
+export const quizService = {
+    getInitialQuiz: async () => {
+        const response = await api.get('/quiz/initial');
+        return response.data;
+    },
+
+    completeQuiz: async (data) => {
+        const response = await api.post('/quiz/complete', data);
+        return response.data;
+    }
+};
+
 export default api;
