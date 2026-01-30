@@ -1,0 +1,231 @@
+const pool = require('../config/database');
+
+/**
+ * GamificationService - Handles all XP leveling and streak mechanics
+ * 
+ * Key Features:
+ * - Quadratic leveling formula: Level = floor(sqrt(TotalXP / 100))
+ * - Server-side date handling for streak logic (never trust client)
+ * - Dashboard payload preparation
+ */
+class GamificationService {
+    /**
+     * Calculate level from total XP using quadratic formula
+     * Level = floor(sqrt(TotalXP / 100))
+     * 
+     * XP Required per Level:
+     * Level 1: 100 XP | Level 2: 400 XP | Level 3: 900 XP
+     * Level 5: 2500 XP | Level 10: 10000 XP | Level 20: 40000 XP
+     * 
+     * @param {number} totalXP - Total experience points
+     * @returns {number} Current level (minimum 0)
+     */
+    static calculateLevel(totalXP) {
+        if (totalXP < 0) return 0;
+        return Math.floor(Math.sqrt(totalXP / 100));
+    }
+
+    /**
+     * Calculate XP required to reach a specific level (inverse formula)
+     * XP = level² × 100
+     * 
+     * @param {number} level - Target level
+     * @returns {number} Total XP required for that level
+     */
+    static calculateXPForLevel(level) {
+        if (level < 0) return 0;
+        return level * level * 100;
+    }
+
+    /**
+     * Get the title/rank name based on level
+     * @param {number} level - Current level
+     * @returns {string} Title name
+     */
+    static getLevelTitle(level) {
+        if (level >= 50) return 'LEGENDARY MASTER';
+        if (level >= 40) return 'GRANDMASTER';
+        if (level >= 30) return 'MASTER';
+        if (level >= 25) return 'EXPERT';
+        if (level >= 20) return 'ELITE EXPLORER';
+        if (level >= 15) return 'SKILLED LEARNER';
+        if (level >= 10) return 'RISING STAR';
+        if (level >= 5) return 'APPRENTICE';
+        if (level >= 2) return 'NOVICE';
+        return 'BEGINNER';
+    }
+
+    /**
+     * Calculate the difference in days between two dates
+     * Uses UTC to avoid timezone issues
+     * 
+     * @param {Date} date1 - First date
+     * @param {Date} date2 - Second date
+     * @returns {number} Number of days difference (always positive)
+     */
+    static daysDifference(date1, date2) {
+        const utc1 = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate());
+        const utc2 = Date.UTC(date2.getFullYear(), date2.getMonth(), date2.getDate());
+        return Math.floor(Math.abs(utc1 - utc2) / (1000 * 60 * 60 * 24));
+    }
+
+    /**
+     * Update user streak based on activity
+     * CRUCIAL: Server-side date handling - never trust client date
+     * 
+     * Logic:
+     * - If last_date was Yesterday (1 day difference): Increment streak
+     * - If last_date was Today (0 days difference): Do nothing
+     * - If last_date was Older (>1 day) OR Null: Reset streak to 1
+     * 
+     * @param {string} userId - Student ID
+     * @returns {Promise<{streak: number, updated: boolean}>} New streak value and whether it was updated
+     */
+    static async updateStreak(userId) {
+        // Generate today's date on SERVER - never trust client
+        const today = new Date();
+
+        // Fetch current streak and last activity date from database
+        const [rows] = await pool.execute(
+            'SELECT current_streak, last_activity_date FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('User not found');
+        }
+
+        const { current_streak, last_activity_date } = rows[0];
+        let newStreak = current_streak || 0;
+        let updated = false;
+
+        if (!last_activity_date) {
+            // First activity ever - start streak at 1
+            newStreak = 1;
+            updated = true;
+        } else {
+            const lastDate = new Date(last_activity_date);
+            const daysDiff = this.daysDifference(today, lastDate);
+
+            if (daysDiff === 0) {
+                // Same day - do nothing, keep current streak
+                updated = false;
+            } else if (daysDiff === 1) {
+                // Consecutive day - increment streak
+                newStreak = (current_streak || 0) + 1;
+                updated = true;
+            } else {
+                // More than 1 day gap - reset streak to 1
+                newStreak = 1;
+                updated = true;
+            }
+        }
+
+        // Update database if streak changed
+        if (updated) {
+            await pool.execute(
+                'UPDATE student SET current_streak = ?, last_activity_date = ? WHERE student_ID = ?',
+                [newStreak, today.toISOString().split('T')[0], userId]
+            );
+        }
+
+        return {
+            streak: newStreak,
+            updated
+        };
+    }
+
+    /**
+     * Get complete dashboard payload for gamification stats
+     * 
+     * @param {string} userId - Student ID
+     * @returns {Promise<Object>} Dashboard payload with all gamification data
+     */
+    static async getDashboardPayload(userId) {
+        // Fetch fresh user data from database
+        const [rows] = await pool.execute(
+            'SELECT total_xp, current_level, current_streak FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('User not found');
+        }
+
+        const { total_xp, current_streak } = rows[0];
+        const totalXP = total_xp || 0;
+
+        // Calculate current level using quadratic formula
+        const currentLevel = this.calculateLevel(totalXP);
+
+        // Calculate XP thresholds
+        const currentLevelXP = this.calculateXPForLevel(currentLevel);
+        const nextLevelXP = this.calculateXPForLevel(currentLevel + 1);
+
+        // Calculate progress percentage within current level (0-100)
+        const xpIntoCurrentLevel = totalXP - currentLevelXP;
+        const xpNeededForNextLevel = nextLevelXP - currentLevelXP;
+        const progressPercentage = xpNeededForNextLevel > 0
+            ? Math.min(100, Math.max(0, (xpIntoCurrentLevel / xpNeededForNextLevel) * 100))
+            : 0;
+
+        // Get level title
+        const levelTitle = this.getLevelTitle(currentLevel);
+
+        return {
+            currentLevel,
+            currentXP: totalXP,
+            currentLevelXP,      // XP at start of current level
+            nextLevelXP,         // XP needed for next level
+            xpToNextLevel: nextLevelXP - totalXP, // Remaining XP to level up
+            progressPercentage: parseFloat(progressPercentage.toFixed(2)),
+            currentStreak: current_streak || 0,
+            levelTitle
+        };
+    }
+
+    /**
+     * Add XP to user and update level if necessary
+     * 
+     * @param {string} userId - Student ID
+     * @param {number} xpAmount - Amount of XP to add
+     * @returns {Promise<Object>} Updated gamification data with level up info
+     */
+    static async addXP(userId, xpAmount) {
+        // Get current XP
+        const [rows] = await pool.execute(
+            'SELECT total_xp, current_level FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            throw new Error('User not found');
+        }
+
+        const oldXP = rows[0].total_xp || 0;
+        const oldLevel = this.calculateLevel(oldXP);
+
+        const newXP = oldXP + xpAmount;
+        const newLevel = this.calculateLevel(newXP);
+
+        // Update database
+        await pool.execute(
+            'UPDATE student SET total_xp = ?, current_level = ? WHERE student_ID = ?',
+            [newXP, newLevel, userId]
+        );
+
+        const leveledUp = newLevel > oldLevel;
+
+        return {
+            previousXP: oldXP,
+            newXP,
+            xpGained: xpAmount,
+            previousLevel: oldLevel,
+            newLevel,
+            leveledUp,
+            levelTitle: this.getLevelTitle(newLevel)
+        };
+    }
+}
+
+module.exports = GamificationService;

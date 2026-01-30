@@ -72,4 +72,17 @@ export const quizService = {
     }
 };
 
+// Gamification services
+export const gamificationService = {
+    getDashboardStats: async () => {
+        const response = await api.get('/gamification/dashboard');
+        return response.data;
+    },
+
+    addXP: async (amount) => {
+        const response = await api.post('/gamification/add-xp', { amount });
+        return response.data;
+    }
+};
+
 export default api;

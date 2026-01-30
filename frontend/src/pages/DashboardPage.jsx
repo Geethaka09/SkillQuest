@@ -1,9 +1,42 @@
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { authService } from '../services/api';
+import CountUpAnimation from '../components/CountUpAnimation';
+import { authService, gamificationService } from '../services/api';
 import '../styles/dashboard.css';
 
 const DashboardPage = () => {
     const user = authService.getCurrentUser();
+
+    // Gamification state
+    const [xpData, setXpData] = useState({
+        levelTitle: 'LOADING...',
+        currentLevel: 0,
+        currentXP: 0,
+        nextLevelXP: 100,
+        progressPercentage: 0,
+        currentStreak: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [previousXP, setPreviousXP] = useState(0);
+
+    // Fetch gamification data on mount
+    useEffect(() => {
+        const fetchGamificationData = async () => {
+            try {
+                const response = await gamificationService.getDashboardStats();
+                if (response.success) {
+                    setPreviousXP(xpData.currentXP);
+                    setXpData(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch gamification data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchGamificationData();
+    }, []);
 
     const modules = [
         { id: 1, title: 'Introduction to Reinforcement Learning', status: 'completed' },
@@ -18,15 +51,6 @@ const DashboardPage = () => {
         { id: 2, text: 'Complete a graded assessment', progress: null, xp: '+300 XP' },
         { id: 3, text: 'Progress toward your weekly streak', progress: null, xp: '+50 XP' },
     ];
-
-    // XP Level data
-    const xpData = {
-        title: 'ELITE EXPLORER',
-        masteryPoints: 12,
-        currentXP: 1250,
-        maxXP: 2000,
-        nextLevel: 13
-    };
 
     return (
         <Layout>
@@ -88,23 +112,43 @@ const DashboardPage = () => {
                     <div className="stat-card xp-level">
                         <div className="card-header">
                             <h3>XP Level</h3>
-                            <span className="trophy-icon">🏆</span>
+                            <div className="streak-badge">
+                                <span className="streak-fire">🔥</span>
+                                <span className="streak-count">{xpData.currentStreak}</span>
+                            </div>
                         </div>
-                        <p className="level-label">{xpData.title}</p>
+                        <p className="level-label">{xpData.levelTitle}</p>
                         <div className="xp-display">
                             <div className="mastery-points">
-                                <span className="mastery-number">{xpData.masteryPoints}</span>
+                                <CountUpAnimation
+                                    from={previousXP > 0 ? Math.floor(previousXP / 100) : 0}
+                                    to={xpData.currentLevel}
+                                    duration={1200}
+                                    className="mastery-number"
+                                />
                                 <span className="mastery-trophy">🏅</span>
                             </div>
-                            <p className="mastery-label">MASTERY POINTS</p>
+                            <p className="mastery-label">LEVEL</p>
                         </div>
                         <div className="xp-progress">
                             <div className="xp-progress-header">
-                                <span>PROGRESS TO LVL {xpData.nextLevel}</span>
-                                <span className="xp-count">{xpData.currentXP} / {xpData.maxXP} XP</span>
+                                <span>PROGRESS TO LVL {xpData.currentLevel + 1}</span>
+                                <span className="xp-count">
+                                    <CountUpAnimation
+                                        from={previousXP}
+                                        to={xpData.currentXP}
+                                        duration={1500}
+                                    /> / {xpData.nextLevelXP} XP
+                                </span>
                             </div>
                             <div className="xp-bar">
-                                <div className="xp-fill" style={{ width: `${(xpData.currentXP / xpData.maxXP) * 100}%` }}></div>
+                                <div
+                                    className="xp-fill"
+                                    style={{
+                                        width: `${xpData.progressPercentage}%`,
+                                        transition: 'width 1.5s ease-out'
+                                    }}
+                                ></div>
                             </div>
                         </div>
                     </div>

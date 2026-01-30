@@ -63,6 +63,52 @@
     font-size: 1.2rem;
 }
 
+/* Streak Badge */
+.streak-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 20px;
+    border: 1px solid #f59e0b;
+}
+
+.streak-fire {
+    font-size: 1.1rem;
+    animation: fireFlicker 1.5s ease-in-out infinite;
+}
+
+@keyframes fireFlicker {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1);
+    }
+
+    25% {
+        transform: scale(1.1) rotate(-3deg);
+        filter: brightness(1.2);
+    }
+
+    50% {
+        transform: scale(1) rotate(2deg);
+        filter: brightness(1);
+    }
+
+    75% {
+        transform: scale(1.15) rotate(-2deg);
+        filter: brightness(1.1);
+    }
+}
+
+.streak-count {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #d97706;
+}
+
 .xp-display {
     text-align: center;
     padding: 16px 0;
