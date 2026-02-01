@@ -1,0 +1,1 @@
+plan_id | int\nweek_number | int\nstep_ID | int\ngen_QID | varchar(50)\nattempt_number | int\nstudent_ID | varchar(10)\nuser_response | text\nis_correct | tinyint(1)\nscore | double\nattempted_at | datetime\nfinished_at | datetime

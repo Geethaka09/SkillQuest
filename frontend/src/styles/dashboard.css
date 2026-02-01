@@ -692,6 +692,16 @@
     color: #22c55e;
 }
 
+/* Completed goal state */
+.goal-item.completed {
+    background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+}
+
+.goal-item.completed .goal-progress-text {
+    color: #16a34a;
+    font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .bottom-section {

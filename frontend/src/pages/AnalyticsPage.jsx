@@ -1,22 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { analyticsService } from '../services/api';
 import '../styles/analytics.css';
 
 const AnalyticsPage = () => {
     const [timeRange, setTimeRange] = useState('7days');
+    const [loading, setLoading] = useState(true);
+    const [chartData, setChartData] = useState([
+        { day: 'Mon', hours: 0 },
+        { day: 'Tue', hours: 0 },
+        { day: 'Wed', hours: 0 },
+        { day: 'Thu', hours: 0 },
+        { day: 'Fri', hours: 0 },
+        { day: 'Sat', hours: 0 },
+        { day: 'Sun', hours: 0 },
+    ]);
+    const [summary, setSummary] = useState({
+        weeklyTotal: 0,
+        averageDaily: 0,
+        peakDay: 'None'
+    });
 
-    // Sample data for the chart
-    const chartData = [
-        { day: 'Mon', hours: 2.5 },
-        { day: 'Tue', hours: 4 },
-        { day: 'Wed', hours: 1.5 },
-        { day: 'Thu', hours: 4.5 },
-        { day: 'Fri', hours: 3.2 },
-        { day: 'Sat', hours: 5.5 },
-        { day: 'Sun', hours: 2 },
-    ];
+    // Fetch data on mount and when timeRange changes
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const response = await analyticsService.getWeeklyEngagement(timeRange);
+                if (response.success) {
+                    setChartData(response.data.chartData);
+                    setSummary(response.data.summary);
+                }
+            } catch (error) {
+                console.error('Failed to fetch analytics:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const maxHours = 8;
+        fetchData();
+    }, [timeRange]);
+
+    // Calculate max hours for chart scaling (minimum 8, or highest value)
+    const maxHours = Math.max(8, ...chartData.map(d => d.hours));
     const chartHeight = 200;
     const chartWidth = 700;
     const padding = 40;
@@ -47,6 +73,13 @@ const AnalyticsPage = () => {
 
     const linePath = createSmoothPath(points);
 
+    // Generate grid values based on maxHours
+    const gridValues = [];
+    const step = Math.ceil(maxHours / 4);
+    for (let i = 0; i <= maxHours; i += step) {
+        gridValues.push(i);
+    }
+
     return (
         <Layout>
             <div className="analytics">
@@ -67,6 +100,12 @@ const AnalyticsPage = () => {
                             </svg>
                             Last 7 Days
                         </button>
+                        <button
+                            className={`filter-btn ${timeRange === '14days' ? 'active' : ''}`}
+                            onClick={() => setTimeRange('14days')}
+                        >
+                            Last 14 Days
+                        </button>
                         <button className="generate-btn">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,71 +120,75 @@ const AnalyticsPage = () => {
                 {/* Weekly Engagement Chart */}
                 <div className="chart-card">
                     <h3>Weekly Engagement</h3>
-                    <div className="chart-container">
-                        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="engagement-chart">
-                            {/* Grid lines */}
-                            {[0, 2, 4, 6, 8].map((val) => {
-                                const y = chartHeight - padding - (val / maxHours) * (chartHeight - padding * 2);
-                                return (
-                                    <g key={val}>
-                                        <line
-                                            x1={padding}
-                                            y1={y}
-                                            x2={chartWidth - padding}
-                                            y2={y}
-                                            stroke="#e5e7eb"
-                                            strokeDasharray="4 4"
+                    {loading ? (
+                        <div className="chart-loading">Loading chart data...</div>
+                    ) : (
+                        <div className="chart-container">
+                            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="engagement-chart">
+                                {/* Grid lines */}
+                                {gridValues.map((val) => {
+                                    const y = chartHeight - padding - (val / maxHours) * (chartHeight - padding * 2);
+                                    return (
+                                        <g key={val}>
+                                            <line
+                                                x1={padding}
+                                                y1={y}
+                                                x2={chartWidth - padding}
+                                                y2={y}
+                                                stroke="#e5e7eb"
+                                                strokeDasharray="4 4"
+                                            />
+                                            <text x={padding - 10} y={y + 4} textAnchor="end" className="axis-label">
+                                                {val}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Line path */}
+                                <path
+                                    d={linePath}
+                                    fill="none"
+                                    stroke="#3b82f6"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+
+                                {/* Data points */}
+                                {points.map((point, i) => (
+                                    <g key={i}>
+                                        <circle
+                                            cx={point.x}
+                                            cy={point.y}
+                                            r="6"
+                                            fill="#3b82f6"
+                                            stroke="white"
+                                            strokeWidth="3"
                                         />
-                                        <text x={padding - 10} y={y + 4} textAnchor="end" className="axis-label">
-                                            {val}
+                                        <text
+                                            x={point.x}
+                                            y={chartHeight - 10}
+                                            textAnchor="middle"
+                                            className="day-label"
+                                        >
+                                            {point.day}
                                         </text>
                                     </g>
-                                );
-                            })}
+                                ))}
 
-                            {/* Line path */}
-                            <path
-                                d={linePath}
-                                fill="none"
-                                stroke="#3b82f6"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-
-                            {/* Data points */}
-                            {points.map((point, i) => (
-                                <g key={i}>
-                                    <circle
-                                        cx={point.x}
-                                        cy={point.y}
-                                        r="6"
-                                        fill="#3b82f6"
-                                        stroke="white"
-                                        strokeWidth="3"
-                                    />
-                                    <text
-                                        x={point.x}
-                                        y={chartHeight - 10}
-                                        textAnchor="middle"
-                                        className="day-label"
-                                    >
-                                        {point.day}
-                                    </text>
-                                </g>
-                            ))}
-
-                            {/* Y-axis line */}
-                            <line
-                                x1={padding}
-                                y1={padding}
-                                x2={padding}
-                                y2={chartHeight - padding}
-                                stroke="#e5e7eb"
-                                strokeWidth="1"
-                            />
-                        </svg>
-                    </div>
+                                {/* Y-axis line */}
+                                <line
+                                    x1={padding}
+                                    y1={padding}
+                                    x2={padding}
+                                    y2={chartHeight - padding}
+                                    stroke="#e5e7eb"
+                                    strokeWidth="1"
+                                />
+                            </svg>
+                        </div>
+                    )}
 
                     {/* Legend */}
                     <div className="chart-legend">
@@ -160,15 +203,15 @@ const AnalyticsPage = () => {
                 <div className="stats-cards">
                     <div className="stat-item">
                         <span className="stat-label">AVERAGE DAILY</span>
-                        <span className="stat-value">3.1h</span>
+                        <span className="stat-value">{summary.averageDaily}h</span>
                     </div>
                     <div className="stat-item">
                         <span className="stat-label">WEEKLY TOTAL</span>
-                        <span className="stat-value highlight">22.2h</span>
+                        <span className="stat-value highlight">{summary.weeklyTotal}h</span>
                     </div>
                     <div className="stat-item">
                         <span className="stat-label">PEAK DAY</span>
-                        <span className="stat-value">Saturday</span>
+                        <span className="stat-value">{summary.peakDay}</span>
                     </div>
                 </div>
             </div>

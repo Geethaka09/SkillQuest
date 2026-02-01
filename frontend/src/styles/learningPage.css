@@ -1,0 +1,353 @@
+/* W3School Style Learning Page - Dashboard Blue Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+.w3-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.w3-loading,
+.w3-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Layout */
+.w3-layout {
+    display: flex;
+    gap: 24px;
+    min-height: calc(100vh - 150px);
+}
+
+/* Sidebar */
+.w3-sidebar {
+    width: 280px;
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #334155;
+}
+
+.sidebar-header h3 {
+    color: #3b82f6;
+    font-size: 1.25rem;
+    margin: 0 0 4px;
+}
+
+.sidebar-header p {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.step-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.step-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #94a3b8;
+}
+
+.step-nav-item:hover:not(.locked) {
+    background: #334155;
+}
+
+.step-nav-item.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.step-nav-item.completed {
+    color: #22c55e;
+}
+
+.step-nav-item.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.step-icon {
+    width: 24px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.step-label {
+    font-weight: 500;
+}
+
+.w3-btn.w3-back {
+    margin-top: auto;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.w3-btn.w3-back:hover {
+    background: #334155;
+    color: white;
+}
+
+/* Main Content */
+.w3-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.w3-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.w3-badge {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.w3-header h1 {
+    font-size: 1.75rem;
+    color: #1e293b;
+    margin: 0;
+    flex: 1;
+}
+
+.status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.completed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.in-progress {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+/* Content Card */
+.w3-content-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.w3-content-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.w3-green-bar {
+    display: none;
+}
+
+.w3-content-header h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: white;
+}
+
+.w3-content-body {
+    padding: 24px;
+}
+
+.w3-tutorial-content {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #475569;
+    white-space: pre-wrap;
+}
+
+/* Highlight topics in learning content */
+.w3-tutorial-content h3,
+.topic-highlight {
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 16px 0 8px;
+    padding: 8px 12px;
+    background: #dbeafe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 8px 8px 0;
+}
+
+/* Quiz Section */
+.w3-quiz-section {
+    margin-top: auto;
+}
+
+.w3-quiz-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.quiz-icon {
+    font-size: 2.5rem;
+}
+
+.quiz-info {
+    flex: 1;
+}
+
+.quiz-info h3 {
+    margin: 0 0 4px;
+    font-size: 1.125rem;
+}
+
+.quiz-info p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.w3-btn.w3-quiz-btn {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.w3-btn.w3-quiz-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.w3-btn.w3-quiz-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Navigation Buttons */
+.w3-nav-buttons {
+    display: flex;
+    gap: 16px;
+}
+
+.w3-btn.w3-prev,
+.w3-btn.w3-next {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.w3-btn.w3-prev {
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+}
+
+.w3-btn.w3-prev:hover:not(:disabled) {
+    background: #f8fafc;
+}
+
+.w3-btn.w3-next {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none;
+    color: white;
+}
+
+.w3-btn.w3-next:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.w3-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .w3-layout {
+        flex-direction: column;
+    }
+
+    .w3-sidebar {
+        width: 100%;
+    }
+
+    .step-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .step-nav-item {
+        flex: 1;
+        min-width: 100px;
+        justify-content: center;
+    }
+}

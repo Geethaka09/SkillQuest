@@ -1,0 +1,1 @@
+plan_id | int\nstudent_ID | varchar(10)\nweek_number | int\nmodule_name | varchar(100)\nstep_ID | int\ngen_QID | varchar(50)\nlearning_content | text\nquestion | text\noptions | text\ncorrect_answer | text\nstep_status | enum('LOCKED','IN_PROGRESS','RETRY_NEEDED','COMPLETED','FAILED_MAX_ATTEMPTS')\nattempt_count | int

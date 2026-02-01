@@ -226,6 +226,91 @@ class GamificationService {
             levelTitle: this.getLevelTitle(newLevel)
         };
     }
+
+    /**
+     * Get today's goals progress
+     * Tracks: steps completed today, quizzes passed today, streak progress
+     * 
+     * @param {string} userId - Student ID
+     * @returns {Promise<Object>} Daily goals data
+     */
+    static async getDailyGoals(userId) {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get steps completed today (from quiz_attempts)
+        const [stepsToday] = await pool.execute(
+            `SELECT COUNT(DISTINCT CONCAT(week_number, '-', step_ID)) as completed_steps
+             FROM quiz_attempts 
+             WHERE student_ID = ? 
+             AND DATE(finished_at) = ?
+             AND is_correct = 1`,
+            [userId, today]
+        );
+
+        // Get quizzes passed today (distinct step completions)
+        const [quizzesToday] = await pool.execute(
+            `SELECT COUNT(DISTINCT step_ID) as passed_quizzes
+             FROM study_plan 
+             WHERE student_ID = ? 
+             AND step_status = 'COMPLETED'
+             AND EXISTS (
+                SELECT 1 FROM quiz_attempts qa 
+                WHERE qa.student_ID = study_plan.student_ID 
+                AND qa.step_ID = study_plan.step_ID 
+                AND DATE(qa.finished_at) = ?
+             )`,
+            [userId, today]
+        );
+
+        // Get streak info
+        const [streakData] = await pool.execute(
+            `SELECT current_streak, last_activity_date FROM student WHERE student_ID = ?`,
+            [userId]
+        );
+
+        const lastActivity = streakData[0]?.last_activity_date;
+        const lastActivityDate = lastActivity ? new Date(lastActivity).toISOString().split('T')[0] : null;
+        const streakUpdatedToday = lastActivityDate === today;
+
+        const stepsCompleted = stepsToday[0]?.completed_steps || 0;
+        const quizzesPassed = quizzesToday[0]?.passed_quizzes || 0;
+
+        // Calculate goals
+        const goals = [
+            {
+                id: 1,
+                text: 'Complete today\'s learning item',
+                progress: stepsCompleted > 0 ? 'COMPLETED!' : 'PROGRESS: 0/1',
+                xp: '+100 XP',
+                completed: stepsCompleted >= 1
+            },
+            {
+                id: 2,
+                text: 'Complete a graded assessment',
+                progress: quizzesPassed > 0 ? 'COMPLETED!' : null,
+                xp: '+300 XP',
+                completed: quizzesPassed > 0
+            },
+            {
+                id: 3,
+                text: 'Progress toward your weekly streak',
+                progress: streakUpdatedToday ? 'STREAK MAINTAINED!' : null,
+                xp: '+50 XP',
+                completed: streakUpdatedToday
+            }
+        ];
+
+        const completedGoals = goals.filter(g => g.completed).length;
+
+        return {
+            goals,
+            completedGoals,
+            totalGoals: 3,
+            stepsCompletedToday: stepsCompleted,
+            quizzesPassedToday: quizzesPassed,
+            streakMaintained: streakUpdatedToday
+        };
+    }
 }
 
 module.exports = GamificationService;

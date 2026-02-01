@@ -91,4 +91,28 @@ const addXP = async (req, res) => {
     }
 };
 
-module.exports = { getDashboardStats, addXP };
+/**
+ * Get daily goals progress
+ * 
+ * @route GET /api/gamification/daily-goals
+ * @access Private
+ */
+const getDailyGoals = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const goalsData = await GamificationService.getDailyGoals(userId);
+
+        res.json({
+            success: true,
+            data: goalsData
+        });
+    } catch (error) {
+        console.error('Get daily goals error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};
+
+module.exports = { getDashboardStats, addXP, getDailyGoals };

@@ -82,6 +82,42 @@ export const gamificationService = {
     addXP: async (amount) => {
         const response = await api.post('/gamification/add-xp', { amount });
         return response.data;
+    },
+
+    getDailyGoals: async () => {
+        const response = await api.get('/gamification/daily-goals');
+        return response.data;
+    }
+};
+
+// Study Plan services
+export const studyPlanService = {
+    getProgress: async () => {
+        const response = await api.get('/study-plan/progress');
+        return response.data;
+    },
+
+    getWeekContent: async (weekNumber) => {
+        const response = await api.get(`/study-plan/week/${weekNumber}`);
+        return response.data;
+    },
+
+    getStepContent: async (weekNumber, stepId) => {
+        const response = await api.get(`/study-plan/step/${weekNumber}/${stepId}`);
+        return response.data;
+    },
+
+    submitQuiz: async (data) => {
+        const response = await api.post('/study-plan/submit-quiz', data);
+        return response.data;
+    }
+};
+
+// Analytics services
+export const analyticsService = {
+    getWeeklyEngagement: async (range = '7days') => {
+        const response = await api.get(`/analytics/weekly-engagement?range=${range}`);
+        return response.data;
     }
 };
 

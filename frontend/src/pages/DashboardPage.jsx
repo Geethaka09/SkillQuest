@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CountUpAnimation from '../components/CountUpAnimation';
-import { authService, gamificationService } from '../services/api';
+import { authService, gamificationService, studyPlanService } from '../services/api';
 import '../styles/dashboard.css';
 
 const DashboardPage = () => {
+    const navigate = useNavigate();
     const user = authService.getCurrentUser();
 
     // Gamification state
@@ -18,6 +20,26 @@ const DashboardPage = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [previousXP, setPreviousXP] = useState(0);
+
+    // Study Plan Progress state
+    const [progressData, setProgressData] = useState({
+        totalModules: 0,
+        completedModules: 0,
+        percentComplete: 0,
+        currentModule: null,
+        modules: []
+    });
+    const [progressLoading, setProgressLoading] = useState(true);
+
+    // Daily Goals state
+    const [goalsData, setGoalsData] = useState({
+        goals: [
+            { id: 1, text: 'Complete today\'s learning item', progress: 'PROGRESS: 0/1', xp: '+100 XP', completed: false },
+            { id: 2, text: 'Complete a graded assessment', progress: null, xp: '+300 XP', completed: false },
+            { id: 3, text: 'Progress toward your weekly streak', progress: null, xp: '+50 XP', completed: false },
+        ],
+        completedGoals: 0
+    });
 
     // Fetch gamification data on mount
     useEffect(() => {
@@ -38,19 +60,43 @@ const DashboardPage = () => {
         fetchGamificationData();
     }, []);
 
-    const modules = [
-        { id: 1, title: 'Introduction to Reinforcement Learning', status: 'completed' },
-        { id: 2, title: 'Basic Programming Concepts', status: 'completed' },
-        { id: 3, title: 'Object-Oriented Programming', status: 'active' },
-        { id: 4, title: 'Data Structures & Algorithms', status: 'locked' },
-        { id: 5, title: 'System Design Patterns', status: 'locked' },
-    ];
+    // Fetch study plan progress data
+    useEffect(() => {
+        const fetchProgressData = async () => {
+            try {
+                const response = await studyPlanService.getProgress();
+                if (response.success) {
+                    setProgressData(response);
+                }
+            } catch (error) {
+                console.error('Failed to fetch progress data:', error);
+            } finally {
+                setProgressLoading(false);
+            }
+        };
 
-    const todayGoals = [
-        { id: 1, text: 'Complete any 3 learning items', progress: 'PROGRESS: 0/3', xp: '+150 XP' },
-        { id: 2, text: 'Complete a graded assessment', progress: null, xp: '+300 XP' },
-        { id: 3, text: 'Progress toward your weekly streak', progress: null, xp: '+50 XP' },
-    ];
+        fetchProgressData();
+    }, []);
+
+    // Fetch daily goals
+    useEffect(() => {
+        const fetchGoalsData = async () => {
+            try {
+                const response = await gamificationService.getDailyGoals();
+                if (response.success) {
+                    setGoalsData(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch goals data:', error);
+            }
+        };
+
+        fetchGoalsData();
+    }, []);
+
+    // Calculate total steps for modules card
+    const totalSteps = progressData.modules.reduce((acc, m) => acc + m.totalSteps, 0);
+    const completedSteps = progressData.modules.reduce((acc, m) => acc + m.completedSteps, 0);
 
     return (
         <Layout>
@@ -153,78 +199,120 @@ const DashboardPage = () => {
                         </div>
                     </div>
 
-                    {/* Modules Card */}
+                    {/* Modules Card - Real Data */}
                     <div className="stat-card modules-completed">
                         <div className="card-header">
                             <h3>Modules</h3>
-                            <span className="badge orange">⏱ 12 Days Left</span>
+                            <span className="badge orange">📚 {progressData.totalModules} Weeks</span>
                         </div>
                         <p className="level-label">LEARNING JOURNEY</p>
                         <div className="modules-progress">
                             <div className="circular-progress">
-                                <span className="progress-number">12</span>
+                                <span className="progress-number">
+                                    {progressLoading ? '...' : progressData.completedModules}
+                                </span>
                                 <svg className="progress-check" viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="2" />
                                     <path d="M8 12L11 15L16 9" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
-                            <p className="modules-label">OUT OF 45 ITEMS</p>
+                            <p className="modules-label">
+                                OUT OF {progressData.totalModules} MODULES
+                            </p>
                         </div>
                         <div className="goal-progress">
                             <div className="goal-header">
-                                <span>GOAL PROGRESS</span>
-                                <span className="days-remaining">60% TIME USED</span>
+                                <span>COMPLETION</span>
+                                <span className="days-remaining">{progressData.percentComplete}% DONE</span>
                             </div>
                             <div className="goal-bar">
-                                <div className="goal-fill" style={{ width: '60%' }}></div>
+                                <div className="goal-fill" style={{ width: `${progressData.percentComplete}%` }}></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Current Module Section */}
+                {/* Current Module Section - Real Data */}
                 <div className="current-module-card">
                     <div className="module-badge">CURRENT MODULE</div>
                     <div className="module-content">
                         <div className="module-info">
-                            <h2>Object-Oriented Programming</h2>
-                            <p>Module 3</p>
+                            <h2>{progressData.currentModule?.name || 'All caught up!'}</h2>
+                            <p>Week {progressData.currentModule?.weekNumber || '-'}</p>
                         </div>
                         <div className="module-action">
                             <div className="lesson-info">
-                                <h4>Classes and Objects</h4>
-                                <span className="assessments">📄 2 Assessments left</span>
+                                {progressData.currentModule ? (
+                                    <>
+                                        <h4>{progressData.currentModule.completedSteps}/{progressData.currentModule.totalSteps} Steps Complete</h4>
+                                        <span className="assessments">
+                                            📄 {progressData.currentModule.stepsRemaining} Steps remaining
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Find next locked week with days remaining */}
+                                        {(() => {
+                                            const nextLockedWeek = progressData.modules.find(m => m.status === 'LOCKED' && m.daysRemaining);
+                                            if (nextLockedWeek) {
+                                                return (
+                                                    <>
+                                                        <h4>Next module unlocks in {nextLockedWeek.daysRemaining} day{nextLockedWeek.daysRemaining > 1 ? 's' : ''}</h4>
+                                                        <span className="assessments">⏰ Check back soon!</span>
+                                                    </>
+                                                );
+                                            }
+                                            return (
+                                                <>
+                                                    <h4>All modules completed!</h4>
+                                                    <span className="assessments">🎉 Great job!</span>
+                                                </>
+                                            );
+                                        })()}
+                                    </>
+                                )}
                             </div>
-                            <button className="resume-btn">Resume</button>
+                            <button
+                                className="resume-btn"
+                                onClick={() => progressData.currentModule && navigate(`/learn/${progressData.currentModule.weekNumber}`)}
+                                disabled={!progressData.currentModule}
+                            >
+                                Resume
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Bottom Section */}
                 <div className="bottom-section">
-                    {/* Learning Path */}
+                    {/* Learning Path - Real Data */}
                     <div className="learning-path">
                         <div className="path-header">
                             <h3>Your Learning Path</h3>
-                            <a href="#" className="view-syllabus">View Full Syllabus →</a>
+
                         </div>
                         <div className="modules-list">
-                            {modules.map((module) => (
-                                <div key={module.id} className={`module-item ${module.status}`}>
+                            {progressData.modules.map((module) => (
+                                <div
+                                    key={module.weekNumber}
+                                    className={`module-item ${module.status.toLowerCase()}`}
+                                    onClick={() => module.status !== 'LOCKED' && navigate(`/learn/${module.weekNumber}`)}
+                                    style={{ cursor: module.status !== 'LOCKED' ? 'pointer' : 'not-allowed' }}
+                                >
                                     <div className="module-icon">
-                                        {module.status === 'completed' && (
+                                        {module.status === 'COMPLETED' && (
                                             <svg viewBox="0 0 24 24" fill="none">
                                                 <circle cx="12" cy="12" r="10" fill="#22c55e" />
                                                 <path d="M8 12L11 15L16 9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
                                         )}
-                                        {module.status === 'active' && (
+                                        {module.status === 'ACTIVE' && (
                                             <svg viewBox="0 0 24 24" fill="none">
                                                 <circle cx="12" cy="12" r="10" fill="#3b82f6" />
                                                 <path d="M10 8L16 12L10 16V8Z" fill="white" />
                                             </svg>
                                         )}
-                                        {module.status === 'locked' && (
+                                        {module.status === 'LOCKED' && (
                                             <svg viewBox="0 0 24 24" fill="none">
                                                 <circle cx="12" cy="12" r="10" fill="#e2e8f0" />
                                                 <rect x="8" y="10" width="8" height="6" rx="1" stroke="#94a3b8" strokeWidth="1.5" />
@@ -233,11 +321,12 @@ const DashboardPage = () => {
                                         )}
                                     </div>
                                     <div className="module-details">
-                                        <h4>Module {module.id}: {module.title}</h4>
+                                        <h4>Week {module.weekNumber}: {module.name}</h4>
                                         <span className="module-status">
-                                            {module.status === 'completed' && 'COMPLETED'}
-                                            {module.status === 'active' && 'ACTIVE'}
-                                            {module.status === 'locked' && 'LOCKED'}
+                                            {module.status === 'LOCKED' && module.daysRemaining
+                                                ? `Unlocks in ${module.daysRemaining} day${module.daysRemaining > 1 ? 's' : ''}`
+                                                : `${module.status} • ${module.completedSteps}/${module.totalSteps} steps`
+                                            }
                                         </span>
                                     </div>
                                     <svg className="module-arrow" viewBox="0 0 24 24" fill="none">
@@ -245,6 +334,11 @@ const DashboardPage = () => {
                                     </svg>
                                 </div>
                             ))}
+                            {progressData.modules.length === 0 && !progressLoading && (
+                                <div className="no-modules">
+                                    <p>No study plan available yet. Complete your initial assessment to get started!</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -255,9 +349,9 @@ const DashboardPage = () => {
                             <span className="goals-bolt">⚡</span>
                         </div>
                         <div className="goals-list">
-                            {todayGoals.map((goal) => (
-                                <div key={goal.id} className="goal-item">
-                                    <svg className="goal-star" viewBox="0 0 24 24" fill="none">
+                            {goalsData.goals.map((goal) => (
+                                <div key={goal.id} className={`goal-item ${goal.completed ? 'completed' : ''}`}>
+                                    <svg className="goal-star" viewBox="0 0 24 24" fill={goal.completed ? "#fbbf24" : "none"}>
                                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                     <div className="goal-content">

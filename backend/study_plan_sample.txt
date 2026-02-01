@@ -1,0 +1,44 @@
+[
+  {
+    "plan_id": 100,
+    "student_ID": "S0001",
+    "week_number": 1,
+    "module_name": "Foundations & Structure",
+    "step_ID": 1,
+    "gen_QID": "Q_W1_D1_1",
+    "learning_content": "Deductive Logic content...",
+    "question": "If all A are B and all B are C, then?",
+    "options": "[\"All A are C\", \"No A are C\", \"Some A are C\", \"None\"]",
+    "correct_answer": "All A are C",
+    "step_status": "IN_PROGRESS",
+    "attempt_count": 1
+  },
+  {
+    "plan_id": 100,
+    "student_ID": "S0001",
+    "week_number": 1,
+    "module_name": "Foundations & Structure",
+    "step_ID": 1,
+    "gen_QID": "Q_W1_D1_2",
+    "learning_content": "Deductive Logic content...",
+    "question": "Syllogism example...",
+    "options": "[\"Valid\", \"Invalid\", \"Unknown\", \"False\"]",
+    "correct_answer": "Valid",
+    "step_status": "IN_PROGRESS",
+    "attempt_count": 1
+  },
+  {
+    "plan_id": 100,
+    "student_ID": "S0001",
+    "week_number": 1,
+    "module_name": "Foundations & Structure",
+    "step_ID": 1,
+    "gen_QID": "Q_W1_D1_3",
+    "learning_content": "Deductive Logic content...",
+    "question": "Logic Puzzle...",
+    "options": "[\"Option A\", \"Option B\", \"Option C\", \"Option D\"]",
+    "correct_answer": "Option A",
+    "step_status": "IN_PROGRESS",
+    "attempt_count": 1
+  }
+]

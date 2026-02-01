@@ -1,0 +1,1 @@
+Table does not exist: Table 'skillquest.quiz_attempt' doesn't exist

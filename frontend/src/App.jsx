@@ -6,6 +6,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import InitialQuizPage from './pages/InitialQuizPage';
+import LearningPage from './pages/LearningPage';
+import StepQuizPage from './pages/StepQuizPage';
 import { authService } from './services/api';
 
 // Protected Route component - checks authentication and quiz completion status
@@ -59,6 +61,22 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/:weekNumber"
+          element={
+            <ProtectedRoute>
+              <LearningPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz/:weekNumber/:stepId"
+          element={
+            <ProtectedRoute>
+              <StepQuizPage />
             </ProtectedRoute>
           }
         />

@@ -5,6 +5,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
 const gamificationRoutes = require('./routes/gamification');
+const studyPlanRoutes = require('./routes/studyPlan');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/gamification', gamificationRoutes);
+app.use('/api/study-plan', studyPlanRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
