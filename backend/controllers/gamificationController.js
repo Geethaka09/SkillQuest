@@ -38,7 +38,7 @@ const getDashboardStats = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: 'Server error. Please try again.'
+            message: `Server error: ${error.message}`
         });
     }
 };

@@ -283,8 +283,18 @@ const getStepContent = async (req, res) => {
 const submitStepQuiz = async (req, res) => {
     try {
         const studentId = req.user.id;
+        console.log('Quiz submission payload:', req.body); // Debug log
+
         const { planId, weekNumber, stepId, answers } = req.body;
         // answers = [{ genQID, response }]
+
+        if (!planId) {
+            console.error('Missing planId in submission');
+            return res.status(400).json({
+                success: false,
+                message: 'Missing planId in submission'
+            });
+        }
 
         if (!answers || !Array.isArray(answers) || answers.length === 0) {
             return res.status(400).json({
@@ -325,7 +335,10 @@ const submitStepQuiz = async (req, res) => {
 
         let allCorrect = true;
         let score = 0;
+
+        // Format date for MySQL DATETIME
         const now = new Date();
+        const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
 
         // Process each answer and insert into quiz_attempts
         for (const answer of answers) {
@@ -340,7 +353,7 @@ const submitStepQuiz = async (req, res) => {
                 `INSERT INTO quiz_attempts 
                  (plan_id, week_number, step_ID, gen_QID, attempt_number, student_ID, user_response, is_correct, score, attempted_at, finished_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [planId, weekNumber, stepId, answer.genQID, currentAttempt, studentId, answer.response, isCorrect ? 1 : 0, isCorrect ? 1 : 0, now, now]
+                [planId, weekNumber, stepId, answer.genQID, currentAttempt, studentId, answer.response, isCorrect ? 1 : 0, isCorrect ? 1 : 0, mysqlDate, mysqlDate]
             );
         }
 
@@ -415,10 +428,10 @@ const submitStepQuiz = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Submit step quiz error:', error);
+        console.error('Submit step quiz error details:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to submit quiz'
+            message: `Failed to submit quiz: ${error.message}` // Expose error for debugging
         });
     }
 };

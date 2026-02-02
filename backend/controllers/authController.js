@@ -220,4 +220,107 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe };
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: './uploads/',
+    filename: function (req, file, cb) {
+        cb(null, 'profile-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+// Check file type
+const checkFileType = (file, cb) => {
+    // Allowed ext
+    const filetypes = /jpeg|jpg|png|gif/;
+    // Check ext
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    // Check mime
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb('Error: Images Only!');
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5000000 }, // 5MB limit
+    fileFilter: function (req, file, cb) {
+        checkFileType(file, cb);
+    }
+});
+
+// Upload profile picture middleware
+const uploadProfilePic = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const userId = req.user.id;
+        const profilePicUrl = `/uploads/${req.file.filename}`;
+
+        // Update student profile picture
+        await pool.execute(
+            'UPDATE student SET profile_pic = ? WHERE student_ID = ?',
+            [profilePicUrl, userId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Profile picture updated',
+            profilePic: profilePicUrl
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during upload'
+        });
+    }
+};
+
+// Update profile details
+const updateProfile = async (req, res) => {
+    try {
+        const { name } = req.body;
+        const userId = req.user.id;
+
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name is required'
+            });
+        }
+
+        // Update student name
+        await pool.execute(
+            'UPDATE student SET name = ? WHERE student_ID = ?',
+            [name, userId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                name
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile };

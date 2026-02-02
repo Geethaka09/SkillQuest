@@ -87,7 +87,7 @@ class GamificationService {
 
         // Fetch current streak and last activity date from database
         const [rows] = await pool.execute(
-            'SELECT current_streak, last_activity_date FROM student WHERE student_ID = ?',
+            'SELECT current_streak, last_login FROM student WHERE student_ID = ?',
             [userId]
         );
 
@@ -95,16 +95,16 @@ class GamificationService {
             throw new Error('User not found');
         }
 
-        const { current_streak, last_activity_date } = rows[0];
+        const { current_streak, last_login } = rows[0];
         let newStreak = current_streak || 0;
         let updated = false;
 
-        if (!last_activity_date) {
+        if (!last_login) {
             // First activity ever - start streak at 1
             newStreak = 1;
             updated = true;
         } else {
-            const lastDate = new Date(last_activity_date);
+            const lastDate = new Date(last_login);
             const daysDiff = this.daysDifference(today, lastDate);
 
             if (daysDiff === 0) {
@@ -124,7 +124,7 @@ class GamificationService {
         // Update database if streak changed
         if (updated) {
             await pool.execute(
-                'UPDATE student SET current_streak = ?, last_activity_date = ? WHERE student_ID = ?',
+                'UPDATE student SET current_streak = ?, last_login = ? WHERE student_ID = ?',
                 [newStreak, today.toISOString().split('T')[0], userId]
             );
         }
@@ -144,7 +144,7 @@ class GamificationService {
     static async getDashboardPayload(userId) {
         // Fetch fresh user data from database
         const [rows] = await pool.execute(
-            'SELECT total_xp, current_level, current_streak FROM student WHERE student_ID = ?',
+            'SELECT total_xp, current_level, current_streak, level FROM student WHERE student_ID = ?',
             [userId]
         );
 
@@ -152,7 +152,7 @@ class GamificationService {
             throw new Error('User not found');
         }
 
-        const { total_xp, current_streak } = rows[0];
+        const { total_xp, current_streak, level } = rows[0];
         const totalXP = total_xp || 0;
 
         // Calculate current level using quadratic formula
@@ -180,7 +180,8 @@ class GamificationService {
             xpToNextLevel: nextLevelXP - totalXP, // Remaining XP to level up
             progressPercentage: parseFloat(progressPercentage.toFixed(2)),
             currentStreak: current_streak || 0,
-            levelTitle
+            levelTitle,
+            stage: level || 'beginner'
         };
     }
 
@@ -264,11 +265,11 @@ class GamificationService {
 
         // Get streak info
         const [streakData] = await pool.execute(
-            `SELECT current_streak, last_activity_date FROM student WHERE student_ID = ?`,
+            `SELECT current_streak, last_login FROM student WHERE student_ID = ?`,
             [userId]
         );
 
-        const lastActivity = streakData[0]?.last_activity_date;
+        const lastActivity = streakData[0]?.last_login;
         const lastActivityDate = lastActivity ? new Date(lastActivity).toISOString().split('T')[0] : null;
         const streakUpdatedToday = lastActivityDate === today;
 

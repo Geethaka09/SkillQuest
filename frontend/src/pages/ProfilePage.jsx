@@ -1,9 +1,27 @@
+import { useState } from 'react';
 import Layout from '../components/Layout';
 import { authService } from '../services/api';
+import ProfileUploadModal from '../components/ProfileUploadModal';
+import EditProfileModal from '../components/EditProfileModal';
 import '../styles/profile.css';
 
 const ProfilePage = () => {
-    const user = authService.getCurrentUser();
+    const [user, setUser] = useState(authService.getCurrentUser());
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+
+    const handleUploadSuccess = (newProfilePic) => {
+        // Update local state to show new image immediately
+        setUser(prev => ({ ...prev, profilePic: newProfilePic }));
+
+        // Also fire an event so other components (like Navbar) can update if they listen
+        window.dispatchEvent(new Event('userUpdated'));
+    };
+
+    const handleUpdateProfileSuccess = (newName) => {
+        setUser(prev => ({ ...prev, name: newName }));
+        window.dispatchEvent(new Event('userUpdated'));
+    };
 
     const badges = [
         { id: 1, name: 'Pointers King', icon: '🏆' },
@@ -22,25 +40,25 @@ const ProfilePage = () => {
                     <div className="header-gradient"></div>
                     <div className="profile-info">
                         <div className="avatar-section">
-                            <div className="profile-avatar">
+                            <div className="profile-avatar" onClick={() => setIsUploadModalOpen(true)} style={{ cursor: 'pointer', position: 'relative' }}>
                                 <img
-                                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face"
+                                    src={user?.profilePic ? `http://localhost:5000${user.profilePic}` : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face"}
                                     alt="Profile avatar"
                                 />
+                                <div className="avatar-overlay">
+                                    <span>Change</span>
+                                </div>
                             </div>
                         </div>
                         <div className="profile-details">
                             <h1>{user?.name || 'Yasindu Jay'}</h1>
                             <p className="bio">Computer Science undergraduate passionate about AI and Frontend Development. Learning React to build amazing web apps.</p>
                             <p className="join-date">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                </svg>
-                                JOINED SEPTEMBER 2024
+
+
                             </p>
                         </div>
-                        <button className="edit-profile-btn">Edit Profile</button>
+                        <button className="edit-profile-btn" onClick={() => setIsEditProfileModalOpen(true)}>Edit Profile</button>
                     </div>
                 </div>
 
@@ -67,36 +85,26 @@ const ProfilePage = () => {
                     {/* Right Column - Contact & Summary */}
                     <div className="sidebar">
                         {/* Contact Details */}
-                        <div className="contact-card">
-                            <h3>Contact Details</h3>
-                            <div className="contact-item">
-                                <span className="contact-label">EMAIL</span>
-                                <span className="contact-value">{user?.email || 'yasindu.jay@university.edu'}</span>
-                            </div>
-                        </div>
+
 
                         {/* Summary */}
-                        <div className="summary-card">
-                            <h3>Summary</h3>
-                            <button className="summary-btn modules">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M6.5 2H20V22H6.5A2.5 2.5 0 014 19.5V4.5A2.5 2.5 0 016.5 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Modules
-                            </button>
-                            <button className="summary-btn quizzes">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M9.09 9C9.3251 8.33167 9.78915 7.76811 10.4 7.40913C11.0108 7.05016 11.7289 6.91894 12.4272 7.03871C13.1255 7.15848 13.7588 7.52152 14.2151 8.06353C14.6713 8.60553 14.9211 9.29152 14.92 10C14.92 12 11.92 13 11.92 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    <circle cx="12" cy="17" r="1" fill="currentColor" />
-                                </svg>
-                                Quizzes
-                            </button>
-                        </div>
+
                     </div>
                 </div>
             </div>
+
+            <ProfileUploadModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onUploadSuccess={handleUploadSuccess}
+            />
+
+            <EditProfileModal
+                isOpen={isEditProfileModalOpen}
+                onClose={() => setIsEditProfileModalOpen(false)}
+                currentUser={user}
+                onUpdateSuccess={handleUpdateProfileSuccess}
+            />
         </Layout>
     );
 };

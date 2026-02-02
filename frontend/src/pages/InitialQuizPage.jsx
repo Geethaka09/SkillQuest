@@ -16,6 +16,8 @@ const InitialQuizPage = () => {
     const [error, setError] = useState('');
     const [score, setScore] = useState(0);
 
+    const [quizResults, setQuizResults] = useState(null);
+
     useEffect(() => {
         fetchQuestions();
     }, []);
@@ -60,7 +62,7 @@ const InitialQuizPage = () => {
         };
         setAnswers(updatedAnswers);
 
-        // Check if answer is correct for score tracking
+        // Check if answer is correct for score tracking (optimistic, but backend overrides)
         if (selectedAnswer === currentQ.correctAnswer) {
             setScore(prev => prev + 1);
         }
@@ -88,8 +90,9 @@ const InitialQuizPage = () => {
             if (response.success) {
                 // Update user in localStorage with new status
                 localStorage.setItem('user', JSON.stringify(response.user));
-                // Redirect to dashboard
-                navigate('/dashboard');
+
+                // Show results instead of redirecting immediately
+                setQuizResults(response.results);
             } else {
                 setError('Failed to complete quiz. Please try again.');
             }
@@ -100,6 +103,36 @@ const InitialQuizPage = () => {
             setSubmitting(false);
         }
     };
+
+    if (quizResults) {
+        return (
+            <Layout>
+                <div className="quiz-container">
+                    <div className="quiz-card results-card">
+                        <div className="results-header">
+                            <h2>Quiz Completed!</h2>
+                            <p>Here is your total score</p>
+                        </div>
+
+                        <div className="score-circle-outer">
+                            <div className="score-circle-inner">
+                                <span className="score-value">{quizResults.total_score}</span>
+                                <span className="score-label">Total Score</span>
+                            </div>
+                        </div>
+
+                        <button
+                            className="submit-answer-btn"
+                            onClick={() => navigate('/dashboard')}
+                            style={{ marginTop: '20px', padding: '16px 48px', fontSize: '1.1rem' }}
+                        >
+                            Continue to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
     if (loading) {
         return (

@@ -16,9 +16,11 @@ const DashboardPage = () => {
         currentXP: 0,
         nextLevelXP: 100,
         progressPercentage: 0,
-        currentStreak: 0
+        currentStreak: 0,
+        stage: 'beginner'
     });
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [previousXP, setPreviousXP] = useState(0);
 
     // Study Plan Progress state
@@ -50,8 +52,11 @@ const DashboardPage = () => {
                     setPreviousXP(xpData.currentXP);
                     setXpData(response.data);
                 }
-            } catch (error) {
-                console.error('Failed to fetch gamification data:', error);
+            } catch (err) {
+                console.error('Failed to fetch gamification data:', err);
+                const msg = err.response?.data?.message || 'Failed to load XP data';
+                setError(msg);
+                setXpData(prev => ({ ...prev, levelTitle: 'ERROR' }));
             } finally {
                 setIsLoading(false);
             }
@@ -105,7 +110,7 @@ const DashboardPage = () => {
                 <div className="welcome-header">
                     <div className="welcome-avatar">
                         <img
-                            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+                            src={user?.profilePic ? `http://localhost:5000${user.profilePic}` : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"}
                             alt="User avatar"
                         />
                     </div>
@@ -121,34 +126,27 @@ const DashboardPage = () => {
                     <div className="stat-card current-stage">
                         <div className="card-header">
                             <h3>Current Stage</h3>
-                            <span className="badge blue">
-                                {user?.level === 'beginner'}
-                                {user?.level === 'intermediate'}
-                                {user?.level === 'advanced'}
+                            <span className="badge blue" title={`Debug: "${xpData.stage}"`}>
+                                {xpData.stage?.toUpperCase() || 'BEGINNER'}
                             </span>
                         </div>
-                        <p className="level-label">
-                            {user?.level === 'beginner' && ' BEGINNER'}
-                            {user?.level === 'intermediate' && ' INTERMEDIATE'}
-                            {user?.level === 'advanced' && ' ADVANCED'}
-                        </p>
                         <div className="progress-bars">
                             <div className="progress-bar-group">
                                 {/* Bar 1 - Beginner */}
-                                <div className={`bar bar-1 ${user?.level === 'beginner' ? 'current' : 'completed'
+                                <div className={`bar bar-1 ${(xpData.stage?.trim().toLowerCase() === 'beginner') ? 'current' : 'completed'
                                     }`}>
-                                    {user?.level === 'beginner' && <span className="bar-label">CURRENT</span>}
+                                    {xpData.stage?.trim().toLowerCase() === 'beginner' && <span className="bar-label">CURRENT</span>}
                                 </div>
                                 {/* Bar 2 - Intermediate */}
-                                <div className={`bar bar-2 ${user?.level === 'intermediate' ? 'current' :
-                                    user?.level === 'advanced' ? 'completed' : 'locked'
+                                <div className={`bar bar-2 ${(xpData.stage?.trim().toLowerCase() === 'intermediate') ? 'current' :
+                                    (['expert', 'advanced'].includes(xpData.stage?.trim().toLowerCase())) ? 'completed' : 'locked'
                                     }`}>
-                                    {user?.level === 'intermediate' && <span className="bar-label">CURRENT</span>}
+                                    {xpData.stage?.trim().toLowerCase() === 'intermediate' && <span className="bar-label">CURRENT</span>}
                                 </div>
-                                {/* Bar 3 - Advanced */}
-                                <div className={`bar bar-3 ${user?.level === 'advanced' ? 'current' : 'locked'
+                                {/* Bar 3 - Expert/Advanced */}
+                                <div className={`bar bar-3 ${(['expert', 'advanced'].includes(xpData.stage?.trim().toLowerCase())) ? 'current' : 'locked'
                                     }`}>
-                                    {user?.level === 'advanced' && <span className="bar-label">CURRENT</span>}
+                                    {(['expert', 'advanced'].includes(xpData.stage?.trim().toLowerCase())) && <span className="bar-label">CURRENT</span>}
                                 </div>
                             </div>
                         </div>
@@ -163,7 +161,9 @@ const DashboardPage = () => {
                                 <span className="streak-count">{xpData.currentStreak}</span>
                             </div>
                         </div>
-                        <p className="level-label">{xpData.levelTitle}</p>
+                        <p className="level-label" style={{ color: error ? '#ef4444' : undefined, fontSize: error ? '0.8rem' : undefined }}>
+                            {error ? `⚠️ ${error}` : xpData.levelTitle}
+                        </p>
                         <div className="xp-display">
                             <div className="mastery-points">
                                 <CountUpAnimation

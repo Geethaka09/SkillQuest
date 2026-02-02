@@ -8,7 +8,16 @@ const Navbar = () => {
     const dropdownRef = useRef(null);
     const location = useLocation();
     const navigate = useNavigate();
-    const user = authService.getCurrentUser();
+    const [user, setUser] = useState(authService.getCurrentUser());
+
+    // Listen for user updates (e.g. profile pic change)
+    useEffect(() => {
+        const handleUserUpdate = () => {
+            setUser(authService.getCurrentUser());
+        };
+        window.addEventListener('userUpdated', handleUserUpdate);
+        return () => window.removeEventListener('userUpdated', handleUserUpdate);
+    }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -61,7 +70,7 @@ const Navbar = () => {
                     >
                         <div className="user-avatar">
                             <img
-                                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+                                src={user?.profilePic ? `http://localhost:5000${user.profilePic}` : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"}
                                 alt="User avatar"
                             />
                         </div>

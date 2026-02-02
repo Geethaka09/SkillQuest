@@ -16,6 +16,20 @@ router.post('/register', register);
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
+// @route   GET /api/auth/me
+// @desc    Get current user
+// @access  Private
 router.get('/me', auth, getMe);
+
+// @route   POST /api/auth/upload-profile-pic
+// @desc    Upload profile picture
+// @access  Private
+const { upload, uploadProfilePic, updateProfile } = require('../controllers/authController');
+router.post('/upload-profile-pic', auth, upload.single('profilePic'), uploadProfilePic);
+
+// @route   PUT /api/auth/update-profile
+// @desc    Update profile details (name)
+// @access  Private
+router.put('/update-profile', auth, updateProfile);
 
 module.exports = router;

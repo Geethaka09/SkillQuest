@@ -11,10 +11,12 @@ const parseOptions = (optionText) => {
         options = JSON.parse(text);
     } catch (e) {
         if (text.match(/[a-d]\)/i)) {
-            const matches = text.match(/[a-d]\)\s*[^a-d)]+/gi);
-            if (matches) {
-                options = matches.map(opt => opt.trim());
-            }
+            // Split by option prefixes (a), b), c), d))
+            // This regex matches a) b) c) d) case-insensitive, ensuring they are preceded by start-of-line or whitespace
+            // to avoid matching "word)" inside text
+            const parts = text.split(/(?:^|\s)[a-d]\)/i);
+            // Filter out empty strings (usually the part before 'a)')
+            options = parts.map(opt => opt.trim()).filter(opt => opt.length > 0);
         } else {
             options = text.split(/[,|;]/).map(opt => opt.trim()).filter(opt => opt);
         }
@@ -49,68 +51,89 @@ const getInitialQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Define the balanced distribution
-        const distribution = [
-            { category: 'Analytical Thinking', difficulty: 'Easy', count: 7 },
-            { category: 'Analytical Thinking', difficulty: 'Moderate', count: 6 },
-            { category: 'Analytical Thinking', difficulty: 'Hard', count: 3 },
-            { category: 'Computational Thinking', difficulty: 'Easy', count: 7 },
-            { category: 'Computational Thinking', difficulty: 'Moderate', count: 7 },
-            { category: 'Computational Thinking', difficulty: 'Hard', count: 3 },
-            { category: 'Programming', difficulty: 'Easy', count: 6 },
-            { category: 'Programming', difficulty: 'Moderate', count: 7 },
-            { category: 'Programming', difficulty: 'Hard', count: 4 },
-        ];
+        // Check if user already has an active or completed quiz paper
+        const [existingPapers] = await pool.execute(
+            'SELECT DISTINCT paper_ID FROM initial_question_paper WHERE student_ID = ? ORDER BY paper_ID DESC LIMIT 1',
+            [userId]
+        );
 
-        let allQuestions = [];
+        let paperId;
+        let questionsData = [];
 
-        // Fetch questions for each category/difficulty combination
-        for (const dist of distribution) {
-            // Note: LIMIT cannot be parameterized in MySQL prepared statements
-            const [questions] = await pool.execute(
-                `SELECT q_ID, question, option_text, correct_answer, category, difficulty_rate 
+        if (existingPapers.length > 0) {
+            // Resume existing paper
+            paperId = existingPapers[0].paper_ID;
+
+            // Fetch existing questions
+            const [existingQuestions] = await pool.execute(
+                `SELECT iqp.q_ID, qb.question, qb.option_text, qb.correct_answer, qb.category, qb.difficulty_rate, iqp.response
+                 FROM initial_question_paper iqp
+                 JOIN quiz_bank qb ON iqp.q_ID = qb.q_ID
+                 WHERE iqp.paper_ID = ? AND iqp.student_ID = ?`,
+                [paperId, userId]
+            );
+            questionsData = existingQuestions;
+        } else {
+            // Create new paper with sequential ID
+            const [maxIdResult] = await pool.execute('SELECT MAX(paper_ID) as maxId FROM initial_question_paper');
+            const nextId = (maxIdResult[0].maxId || 0) + 1;
+            paperId = nextId;
+
+            // Define the balanced distribution
+            const distribution = [
+                { category: 'Analytical Thinking', difficulty: 'Easy', count: 7 },
+                { category: 'Analytical Thinking', difficulty: 'Moderate', count: 6 },
+                { category: 'Analytical Thinking', difficulty: 'Hard', count: 3 },
+                { category: 'Computational Thinking', difficulty: 'Easy', count: 7 },
+                { category: 'Computational Thinking', difficulty: 'Moderate', count: 7 },
+                { category: 'Computational Thinking', difficulty: 'Hard', count: 3 },
+                { category: 'Programming', difficulty: 'Easy', count: 6 },
+                { category: 'Programming', difficulty: 'Moderate', count: 7 },
+                { category: 'Programming', difficulty: 'Hard', count: 4 },
+            ];
+
+            let allQuestions = [];
+
+            // Fetch questions for each category/difficulty combination
+            for (const dist of distribution) {
+                const [questions] = await pool.execute(
+                    `SELECT q_ID, question, option_text, correct_answer, category, difficulty_rate 
                  FROM quiz_bank 
                  WHERE category = ? AND TRIM(difficulty_rate) = ?
                  ORDER BY RAND() 
                  LIMIT ${parseInt(dist.count)}`,
-                [dist.category, dist.difficulty]
-            );
-            allQuestions = allQuestions.concat(questions);
-        }
+                    [dist.category, dist.difficulty]
+                );
+                allQuestions = allQuestions.concat(questions);
+            }
 
-        if (allQuestions.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No questions found in quiz bank'
-            });
-        }
+            if (allQuestions.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No questions found in quiz bank'
+                });
+            }
 
-        // Shuffle all questions to avoid sequential bias
-        const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5);
+            // Shuffle questions
+            const shuffledQuestions = allQuestions.sort(() => Math.random() - 0.5);
+            questionsData = shuffledQuestions;
 
-        // Generate unique paper ID
-        const paperId = generatePaperId();
-
-        // Store questions in initial_question_paper table
-        for (const q of shuffledQuestions) {
-            await pool.execute(
-                `INSERT INTO initial_question_paper (paper_ID, q_ID, student_ID, response) 
+            // Store questions
+            for (const q of shuffledQuestions) {
+                await pool.execute(
+                    `INSERT INTO initial_question_paper (paper_ID, q_ID, student_ID, response) 
                  VALUES (?, ?, ?, NULL)`,
-                [paperId, q.q_ID, userId]
-            );
+                    [paperId, q.q_ID, userId]
+                );
+            }
         }
 
         // Format questions for frontend
-        const formattedQuestions = shuffledQuestions.map(q => {
+        const formattedQuestions = questionsData.map(q => {
             const options = parseOptions(q.option_text);
 
-            // Validate: must have exactly 4 options
-            if (options.length !== 4) {
-                console.warn(`Question ${q.q_ID} has ${options.length} options instead of 4`);
-            }
-
             return {
-                id: q.q_ID,
+                id: q.q_ID, // Use q_ID from DB
                 category: q.category,
                 difficulty: q.difficulty_rate?.trim(),
                 question: q.question?.trim(),
@@ -191,10 +214,47 @@ const completeQuiz = async (req, res) => {
             }
         }
 
-        // Update student status to 1 (quiz completed)
+        // Calculate scores
+        const [results] = await pool.execute(
+            `SELECT 
+                iqp.response,
+                qb.correct_answer,
+                qb.category
+             FROM initial_question_paper iqp
+             JOIN quiz_bank qb ON iqp.q_ID = qb.q_ID
+             WHERE iqp.paper_ID = ? AND iqp.student_ID = ?`,
+            [paperId, userId]
+        );
+
+        let at_score = 0;
+        let ct_score = 0;
+        let p_score = 0;
+
+        for (const row of results) {
+            // Normalize strings for comparison
+            const userAns = (row.response || '').trim().toLowerCase();
+            const correctAns = (row.correct_answer || '').trim().toLowerCase();
+
+            // Check if answer is correct
+            const isMatch = userAns === correctAns ||
+                (userAns.length > 1 && correctAns.includes(userAns)) ||
+                (correctAns.length > 1 && userAns.includes(correctAns));
+
+            if (userAns && isMatch) {
+                if (row.category === 'Analytical Thinking') at_score++;
+                else if (row.category === 'Computational Thinking') ct_score++;
+                else if (row.category === 'Programming') p_score++;
+            }
+        }
+
+        const total_score = at_score + ct_score + p_score;
+
+        // Update student status to 1 (quiz completed) and save scores
         await pool.execute(
-            'UPDATE student SET status = 1 WHERE student_ID = ?',
-            [userId]
+            `UPDATE student 
+             SET status = 1, at_score = ?, ct_score = ?, p_score = ? 
+             WHERE student_ID = ?`,
+            [at_score, ct_score, p_score, userId]
         );
 
         // Get updated user data
@@ -215,6 +275,12 @@ const completeQuiz = async (req, res) => {
         res.json({
             success: true,
             message: 'Quiz completed successfully!',
+            results: {
+                at_score,
+                ct_score,
+                p_score,
+                total_score
+            },
             user: {
                 id: user.student_ID,
                 email: user.email,

@@ -44,6 +44,36 @@ export const authService = {
         return response.data;
     },
 
+    uploadProfilePic: async (formData) => {
+        const response = await api.post('/auth/upload-profile-pic', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        // Update local storage if successful
+        if (response.data.success && response.data.profilePic) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                user.profilePic = response.data.profilePic;
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+        }
+        return response.data;
+    },
+
+    updateProfile: async (data) => {
+        const response = await api.put('/auth/update-profile', data);
+        if (response.data.success && response.data.user) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                // Merge new data (e.g. name)
+                const updatedUser = { ...user, ...response.data.user };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }
+        return response.data;
+    },
+
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
