@@ -156,7 +156,7 @@ const register = async (req, res) => {
 
         // Insert student with username column - status=0 means quiz pending
         await pool.execute(
-            `INSERT INTO student (student_ID, name, email, username, password, status, level, at_score, pt_score, ct_score, 
+            `INSERT INTO student (student_ID, name, email, username, password, status, level, at_score, p_score, ct_score, 
         ct_tol_easy, ct_tol_med, ct_tol_hard, at_tol_easy, at_tol_med, at_tol_hard, 
         p_tol_easy, p_tol_med, p_tol_hard) 
        VALUES (?, ?, ?, ?, ?, 0, 'beginner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)`,
@@ -196,7 +196,7 @@ const register = async (req, res) => {
 const getMe = async (req, res) => {
     try {
         const [rows] = await pool.execute(
-            'SELECT student_ID, name, email, profile_pic, status, level, at_score, pt_score, ct_score FROM student WHERE student_ID = ?',
+            'SELECT student_ID, name, email, profile_pic, status, level, at_score, p_score, ct_score FROM student WHERE student_ID = ?',
             [req.user.id]
         );
 
