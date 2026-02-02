@@ -32,4 +32,10 @@ router.post('/upload-profile-pic', auth, upload.single('profilePic'), uploadProf
 // @access  Private
 router.put('/update-profile', auth, updateProfile);
 
+// @route   PUT /api/auth/change-password
+// @desc    Change password
+// @access  Private
+const { changePassword } = require('../controllers/authController');
+router.put('/change-password', auth, changePassword);
+
 module.exports = router;

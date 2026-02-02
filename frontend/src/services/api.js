@@ -74,6 +74,11 @@ export const authService = {
         return response.data;
     },
 
+    changePassword: async (data) => {
+        const response = await api.put('/auth/change-password', data);
+        return response.data;
+    },
+
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

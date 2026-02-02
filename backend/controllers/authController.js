@@ -323,4 +323,84 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile };
+// Change password
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide current and new password'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters'
+            });
+        }
+
+        // Get student to check current password
+        const [rows] = await pool.execute(
+            'SELECT password FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        const student = rows[0];
+
+        // Check if current password matches
+        let isMatch = false;
+
+        // Handling both plain text (legacy) and bcrypt passwords
+        if (currentPassword === student.password) {
+            isMatch = true;
+        } else {
+            try {
+                isMatch = await bcrypt.compare(currentPassword, student.password);
+            } catch (e) {
+                isMatch = false;
+            }
+        }
+
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: 'Incorrect current password'
+            });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        // Update password
+        await pool.execute(
+            'UPDATE student SET password = ? WHERE student_ID = ?',
+            [passwordHash, userId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Password updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile, changePassword };

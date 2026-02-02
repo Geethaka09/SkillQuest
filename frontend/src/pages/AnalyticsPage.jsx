@@ -100,12 +100,7 @@ const AnalyticsPage = () => {
                             </svg>
                             Last 7 Days
                         </button>
-                        <button
-                            className={`filter-btn ${timeRange === '14days' ? 'active' : ''}`}
-                            onClick={() => setTimeRange('14days')}
-                        >
-                            Last 14 Days
-                        </button>
+
                         <button className="generate-btn">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
