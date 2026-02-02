@@ -15,11 +15,11 @@
 }
 
 .settings-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    border-radius: 24px;
+    padding: 48px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e7ff;
 }
 
 /* Email Section */
@@ -165,76 +165,118 @@
 .password-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     margin-top: 16px;
     padding-top: 24px;
-    border-top: 1px solid #e2e8f0;
+    border-top: none;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .form-group label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-group input {
-    padding: 12px 16px;
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    font-size: 0.95rem;
+    padding: 18px 20px;
+    background: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    border-radius: 14px;
+    font-size: 1rem;
     color: #1e293b;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     font-family: inherit;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .form-group input:focus {
     outline: none;
+    background: #ffffff;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transform: translateY(-2px);
+}
+
+.form-group input::placeholder {
+    color: #94a3b8;
 }
 
 .change-password-btn {
-    margin-top: 8px;
-    padding: 12px 24px;
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #475569;
+    margin-top: 12px;
+    padding: 18px 40px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    border: none;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     align-self: flex-start;
+    box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.4), 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .change-password-btn:hover:not(:disabled) {
-    background: #f8fafc;
-    border-color: #94a3b8;
-    color: #1e293b;
+    background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(59, 130, 246, 0.5), 0 6px 10px -2px rgba(59, 130, 246, 0.4);
+}
+
+.change-password-btn:active:not(:disabled) {
+    transform: translateY(-1px);
 }
 
 .change-password-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
 }
 
 .error-message {
     color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 12px 16px;
+    border-radius: 10px;
     font-size: 0.85rem;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-message::before {
+    content: "⚠";
+    font-size: 1.1rem;
 }
 
 .success-message {
     color: #16a34a;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 12px 16px;
+    border-radius: 10px;
     font-size: 0.85rem;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.success-message::before {
+    content: "✓";
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
 /* Save Section */
