@@ -76,7 +76,8 @@ const login = async (req, res) => {
                 name: student.name,
                 level: student.level,
                 status: student.status,
-                profilePic: student.profile_pic
+                profilePic: student.profile_pic,
+                bio: student.bio
             }
         });
     } catch (error) {
@@ -202,7 +203,7 @@ const register = async (req, res) => {
 const getMe = async (req, res) => {
     try {
         const [rows] = await pool.execute(
-            'SELECT student_ID, name, email, profile_pic, status, level, at_score, p_score, ct_score FROM student WHERE student_ID = ?',
+            'SELECT student_ID, name, email, profile_pic, status, level, at_score, p_score, ct_score, bio FROM student WHERE student_ID = ?',
             [req.user.id]
         );
 
@@ -219,6 +220,140 @@ const getMe = async (req, res) => {
         });
     } catch (error) {
         console.error('Get user error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+// Get account information for profile page
+const getAccountInfo = async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT email, status, created_at, last_login FROM student WHERE student_ID = ?',
+            [req.user.id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        const student = rows[0];
+
+        // Calculate days on platform
+        const createdAt = student.created_at ? new Date(student.created_at) : new Date();
+        const now = new Date();
+        const diffTime = Math.abs(now - createdAt);
+        const daysOnPlatform = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Determine account status text
+        const statusText = student.status === 1 ? 'Active' : 'Pending Quiz';
+
+        res.json({
+            success: true,
+            data: {
+                email: student.email,
+                memberSince: createdAt.toISOString(),
+                accountStatus: statusText,
+                daysOnPlatform: daysOnPlatform,
+                lastActive: student.last_login ? new Date(student.last_login).toISOString() : null
+            }
+        });
+    } catch (error) {
+        console.error('Get account info error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+// Get personal best records for profile page
+const getPersonalBests = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Get longest streak from student table
+        const [streakRows] = await pool.execute(
+            'SELECT longest_streak, current_streak FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        if (streakRows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        const longestStreak = Math.max(
+            streakRows[0].longest_streak || 0,
+            streakRows[0].current_streak || 0
+        );
+
+        // Get highest quiz score (percentage) - calculate as (correct answers / total questions * 100)
+        // Each quiz attempt for a step has multiple question rows, so we need to group by attempt
+        const [scoreRows] = await pool.execute(
+            `SELECT 
+                week_number, step_ID, attempt_number,
+                SUM(is_correct) as correct_count,
+                COUNT(*) as total_count,
+                ROUND(SUM(is_correct) / COUNT(*) * 100, 0) as score_percentage
+             FROM quiz_attempts 
+             WHERE student_ID = ?
+             GROUP BY week_number, step_ID, attempt_number
+             ORDER BY score_percentage DESC
+             LIMIT 1`,
+            [userId]
+        );
+
+        const highestScore = scoreRows.length > 0 ? scoreRows[0].score_percentage : null;
+
+        // Get fastest quiz completion time
+        // Calculate duration between attempted_at (start) and finished_at (end) for each attempt
+        const [timeRows] = await pool.execute(
+            `SELECT 
+                week_number, step_ID, attempt_number,
+                MIN(attempted_at) as start_time,
+                MAX(finished_at) as end_time,
+                TIMESTAMPDIFF(SECOND, MIN(attempted_at), MAX(finished_at)) as duration_seconds
+             FROM quiz_attempts 
+             WHERE student_ID = ? 
+               AND attempted_at IS NOT NULL 
+               AND finished_at IS NOT NULL
+             GROUP BY week_number, step_ID, attempt_number
+             HAVING duration_seconds > 0
+             ORDER BY duration_seconds ASC
+             LIMIT 1`,
+            [userId]
+        );
+
+        let fastestTime = null;
+        if (timeRows.length > 0 && timeRows[0].duration_seconds) {
+            const seconds = timeRows[0].duration_seconds;
+            if (seconds < 60) {
+                fastestTime = `${seconds}s`;
+            } else {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                fastestTime = secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                highestScore: highestScore !== null ? `${highestScore}%` : null,
+                longestStreak: longestStreak,
+                fastestTime: fastestTime
+            }
+        });
+    } catch (error) {
+        console.error('Get personal bests error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error'
@@ -297,7 +432,7 @@ const uploadProfilePic = async (req, res) => {
 // Update profile details
 const updateProfile = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, bio } = req.body;
         const userId = req.user.id;
 
         if (!name || name.trim().length === 0) {
@@ -307,17 +442,18 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Update student name
+        // Update student name and bio
         await pool.execute(
-            'UPDATE student SET name = ? WHERE student_ID = ?',
-            [name, userId]
+            'UPDATE student SET name = ?, bio = ? WHERE student_ID = ?',
+            [name, bio || null, userId]
         );
 
         res.json({
             success: true,
             message: 'Profile updated successfully',
             user: {
-                name
+                name,
+                bio: bio || null
             }
         });
     } catch (error) {
@@ -409,6 +545,61 @@ const changePassword = async (req, res) => {
     }
 };
 
+// Change email
+const changeEmail = async (req, res) => {
+    try {
+        const { newEmail } = req.body;
+        const userId = req.user.id;
+
+        if (!newEmail || newEmail.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid email address'
+            });
+        }
+
+        // Check if email already exists
+        const [existingEmail] = await pool.execute(
+            'SELECT student_ID FROM student WHERE email = ? AND student_ID != ?',
+            [newEmail, userId]
+        );
+
+        if (existingEmail.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'This email is already registered to another account'
+            });
+        }
+
+        // Update email
+        await pool.execute(
+            'UPDATE student SET email = ? WHERE student_ID = ?',
+            [newEmail, userId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Email updated successfully',
+            email: newEmail
+        });
+    } catch (error) {
+        console.error('Change email error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
 // Log exit - handles navigator.sendBeacon() when user closes browser/tab
 const logExit = async (req, res) => {
     try {
@@ -476,4 +667,47 @@ const logExit = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile, changePassword, logExit };
+// Delete account - removes all student data from database
+const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Start transaction-like deletion (delete from child tables first)
+        // Delete quiz attempts
+        await pool.execute(
+            'DELETE FROM quiz_attempts WHERE student_ID = ?',
+            [userId]
+        );
+
+        // Delete study plan records
+        await pool.execute(
+            'DELETE FROM study_plan WHERE student_ID = ?',
+            [userId]
+        );
+
+        // Delete initial question paper records
+        await pool.execute(
+            'DELETE FROM initial_question_paper WHERE student_ID = ?',
+            [userId]
+        );
+
+        // Finally delete the student record
+        await pool.execute(
+            'DELETE FROM student WHERE student_ID = ?',
+            [userId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Account deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete account error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete account. Please try again.'
+        });
+    }
+};
+
+module.exports = { login, register, getMe, getAccountInfo, getPersonalBests, upload, uploadProfilePic, updateProfile, changePassword, changeEmail, deleteAccount, logExit };

@@ -79,6 +79,33 @@ export const authService = {
         return response.data;
     },
 
+    changeEmail: async (data) => {
+        const response = await api.put('/auth/change-email', data);
+        if (response.data.success && response.data.email) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                user.email = response.data.email;
+                localStorage.setItem('user', JSON.stringify(user));
+            }
+        }
+        return response.data;
+    },
+
+    deleteAccount: async () => {
+        const response = await api.delete('/auth/delete-account');
+        return response.data;
+    },
+
+    getAccountInfo: async () => {
+        const response = await api.get('/auth/account-info');
+        return response.data;
+    },
+
+    getPersonalBests: async () => {
+        const response = await api.get('/auth/personal-bests');
+        return response.data;
+    },
+
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

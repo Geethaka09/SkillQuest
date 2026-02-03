@@ -1,11 +1,18 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { authService } from '../services/api';
+import ChangeEmailModal from '../components/ChangeEmailModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 import '../styles/settings.css';
 
 const SettingsPage = () => {
+    const navigate = useNavigate();
     const [activeView, setActiveView] = useState('main'); // 'main' or 'change-password'
+    const [user, setUser] = useState(authService.getCurrentUser());
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     // Password change state
     const [currentPassword, setCurrentPassword] = useState('');
@@ -56,6 +63,21 @@ const SettingsPage = () => {
         }
     };
 
+    const handleEmailUpdateSuccess = (newEmail) => {
+        setUser(prev => ({ ...prev, email: newEmail }));
+        window.dispatchEvent(new Event('userUpdated'));
+    };
+
+    const handleDeleteAccount = async () => {
+        const result = await authService.deleteAccount();
+        if (result.success) {
+            authService.logout();
+            navigate('/login');
+        } else {
+            throw new Error(result.message || 'Failed to delete account');
+        }
+    };
+
     return (
         <Layout>
             <div className="settings-page">
@@ -64,6 +86,27 @@ const SettingsPage = () => {
                         <h1>Account Settings</h1>
 
                         <div className="settings-card">
+                            {/* Navigation Tile for Change Email */}
+                            <div className="settings-section navigation-tile" onClick={() => setIsEmailModalOpen(true)} style={{ marginBottom: '16px' }}>
+                                <div className="nav-tile-content">
+                                    <div className="nav-icon email-icon">
+                                        <svg viewBox="0 0 24 24" fill="none">
+                                            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M22 6L12 13L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="nav-text">
+                                        <h3>Change Email</h3>
+                                        <p>Update your email address.</p>
+                                    </div>
+                                    <div className="nav-arrow">
+                                        <svg viewBox="0 0 24 24" fill="none">
+                                            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Navigation Tile for Change Password */}
                             <div className="settings-section navigation-tile" onClick={() => setActiveView('change-password')} style={{ marginBottom: 0 }}>
                                 <div className="nav-tile-content">
@@ -78,6 +121,27 @@ const SettingsPage = () => {
                                         <p>Update your password and secure your account.</p>
                                     </div>
                                     <div className="nav-arrow">
+                                        <svg viewBox="0 0 24 24" fill="none">
+                                            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Navigation Tile for Delete Account */}
+                            <div className="settings-section navigation-tile delete-tile" onClick={() => setIsDeleteModalOpen(true)} style={{ marginTop: '32px', marginBottom: 0 }}>
+                                <div className="nav-tile-content" style={{ background: '#fef2f2', borderColor: '#fecaca' }}>
+                                    <div className="nav-icon delete-icon">
+                                        <svg viewBox="0 0 24 24" fill="none">
+                                            <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="nav-text">
+                                        <h3 style={{ color: '#dc2626' }}>Delete Account</h3>
+                                        <p style={{ color: '#7f1d1d' }}>Permanently delete your account and all data.</p>
+                                    </div>
+                                    <div className="nav-arrow" style={{ color: '#dc2626' }}>
                                         <svg viewBox="0 0 24 24" fill="none">
                                             <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
@@ -144,8 +208,22 @@ const SettingsPage = () => {
                     </>
                 )}
             </div>
+
+            <ChangeEmailModal
+                isOpen={isEmailModalOpen}
+                onClose={() => setIsEmailModalOpen(false)}
+                currentEmail={user?.email}
+                onUpdateSuccess={handleEmailUpdateSuccess}
+            />
+
+            <DeleteAccountModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirmDelete={handleDeleteAccount}
+            />
         </Layout>
     );
 };
 
 export default SettingsPage;
+

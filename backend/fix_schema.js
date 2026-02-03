@@ -59,6 +59,24 @@ async function fixSchema() {
             console.log('✅ closed_at already exists');
         }
 
+        // Add created_at if missing (required for account info)
+        if (!columnNames.includes('created_at')) {
+            console.log('➕ Adding created_at column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+            console.log('✅ Added created_at');
+        } else {
+            console.log('✅ created_at already exists');
+        }
+
+        // Add longest_streak if missing (required for personal bests)
+        if (!columnNames.includes('longest_streak')) {
+            console.log('➕ Adding longest_streak column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN longest_streak INT DEFAULT 0");
+            console.log('✅ Added longest_streak');
+        } else {
+            console.log('✅ longest_streak already exists');
+        }
+
         console.log('🎉 Schema fix completed successfully!');
     } catch (error) {
         console.error('❌ Schema fix failed:', error);

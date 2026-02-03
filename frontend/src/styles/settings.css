@@ -380,6 +380,20 @@
     color: #3b82f6;
 }
 
+.nav-icon.email-icon {
+    color: #10b981;
+}
+
+.nav-icon.delete-icon {
+    color: #dc2626;
+    background: #fee2e2;
+}
+
+.delete-tile:hover .nav-tile-content {
+    background: #fee2e2 !important;
+    border-color: #f87171 !important;
+}
+
 .nav-icon svg {
     width: 24px;
     height: 24px;

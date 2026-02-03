@@ -13,13 +13,23 @@ router.post('/login', login);
 // @access  Public
 router.post('/register', register);
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
+
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
 router.get('/me', auth, getMe);
+
+// @route   GET /api/auth/account-info
+// @desc    Get account information
+// @access  Private
+const { getAccountInfo } = require('../controllers/authController');
+router.get('/account-info', auth, getAccountInfo);
+
+// @route   GET /api/auth/personal-bests
+// @desc    Get personal best records
+// @access  Private
+const { getPersonalBests } = require('../controllers/authController');
+router.get('/personal-bests', auth, getPersonalBests);
 
 // @route   POST /api/auth/upload-profile-pic
 // @desc    Upload profile picture
@@ -35,8 +45,18 @@ router.put('/update-profile', auth, updateProfile);
 // @route   PUT /api/auth/change-password
 // @desc    Change password
 // @access  Private
-const { changePassword, logExit } = require('../controllers/authController');
+const { changePassword, changeEmail, deleteAccount, logExit } = require('../controllers/authController');
 router.put('/change-password', auth, changePassword);
+
+// @route   PUT /api/auth/change-email
+// @desc    Change email
+// @access  Private
+router.put('/change-email', auth, changeEmail);
+
+// @route   DELETE /api/auth/delete-account
+// @desc    Delete user account and all related data
+// @access  Private
+router.delete('/delete-account', auth, deleteAccount);
 
 // @route   POST /api/auth/log-exit
 // @desc    Log when user exits/closes browser (via sendBeacon)

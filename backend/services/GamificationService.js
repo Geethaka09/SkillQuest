@@ -123,9 +123,14 @@ class GamificationService {
 
         // Update database if streak changed
         if (updated) {
+            // Also update longest_streak if new streak is a record
             await pool.execute(
-                'UPDATE student SET current_streak = ?, last_login = ? WHERE student_ID = ?',
-                [newStreak, today.toISOString().split('T')[0], userId]
+                `UPDATE student 
+                 SET current_streak = ?, 
+                     last_login = ?,
+                     longest_streak = GREATEST(COALESCE(longest_streak, 0), ?)
+                 WHERE student_ID = ?`,
+                [newStreak, today.toISOString().split('T')[0], newStreak, userId]
             );
         }
 
