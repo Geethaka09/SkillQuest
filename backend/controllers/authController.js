@@ -52,6 +52,12 @@ const login = async (req, res) => {
             });
         }
 
+        // Update last_login timestamp
+        await pool.execute(
+            'UPDATE student SET last_login = NOW() WHERE student_ID = ?',
+            [student.student_ID]
+        );
+
         // Create JWT token
         const tokenExpiry = rememberMe ? '30d' : '24h';
         const token = jwt.sign(
@@ -403,4 +409,71 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile, changePassword };
+// Log exit - handles navigator.sendBeacon() when user closes browser/tab
+const logExit = async (req, res) => {
+    try {
+        let studentId, timestamp;
+
+        // Handle different content types from sendBeacon
+        // sendBeacon may send as text/plain, application/json, or blob
+        if (typeof req.body === 'string') {
+            // Parse text/plain body
+            try {
+                const parsed = JSON.parse(req.body);
+                studentId = parsed.student_ID || parsed.studentId;
+                timestamp = parsed.timestamp;
+            } catch (e) {
+                // If not JSON, try to parse as query string or other format
+                console.error('Failed to parse text body:', e);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid request body format'
+                });
+            }
+        } else if (req.body && typeof req.body === 'object') {
+            // Standard JSON body
+            studentId = req.body.student_ID || req.body.studentId;
+            timestamp = req.body.timestamp;
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'No request body provided'
+            });
+        }
+
+        if (!studentId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student ID is required'
+            });
+        }
+
+        // Use provided timestamp or current server time
+        let closedAt;
+        if (timestamp) {
+            // Convert timestamp to MySQL datetime format
+            closedAt = new Date(timestamp).toISOString().slice(0, 19).replace('T', ' ');
+        } else {
+            closedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        }
+
+        // Update closed_at timestamp
+        await pool.execute(
+            'UPDATE student SET closed_at = ? WHERE student_ID = ?',
+            [closedAt, studentId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Exit logged successfully'
+        });
+    } catch (error) {
+        console.error('Log exit error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { login, register, getMe, upload, uploadProfilePic, updateProfile, changePassword, logExit };

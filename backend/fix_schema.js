@@ -14,15 +14,6 @@ async function fixSchema() {
         const columnNames = columns.map(c => c.COLUMN_NAME);
         console.log('Existing columns:', columnNames);
 
-        // Add last_activity_date if missing
-        if (!columnNames.includes('last_activity_date')) {
-            console.log('➕ Adding last_activity_date column...');
-            await pool.execute("ALTER TABLE student ADD COLUMN last_activity_date DATE");
-            console.log('✅ Added last_activity_date');
-        } else {
-            console.log('✅ last_activity_date already exists');
-        }
-
         // Add current_streak if missing
         if (!columnNames.includes('current_streak')) {
             console.log('➕ Adding current_streak column...');
@@ -30,6 +21,42 @@ async function fixSchema() {
             console.log('✅ Added current_streak');
         } else {
             console.log('✅ current_streak already exists');
+        }
+
+        // Add total_xp if missing (required for gamification)
+        if (!columnNames.includes('total_xp')) {
+            console.log('➕ Adding total_xp column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN total_xp INT DEFAULT 0");
+            console.log('✅ Added total_xp');
+        } else {
+            console.log('✅ total_xp already exists');
+        }
+
+        // Add current_level if missing (required for gamification)
+        if (!columnNames.includes('current_level')) {
+            console.log('➕ Adding current_level column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN current_level INT DEFAULT 0");
+            console.log('✅ Added current_level');
+        } else {
+            console.log('✅ current_level already exists');
+        }
+
+        // Add last_login if missing (required for login tracking)
+        if (!columnNames.includes('last_login')) {
+            console.log('➕ Adding last_login column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN last_login DATETIME DEFAULT NULL");
+            console.log('✅ Added last_login');
+        } else {
+            console.log('✅ last_login already exists');
+        }
+
+        // Add closed_at if missing (required for exit tracking)
+        if (!columnNames.includes('closed_at')) {
+            console.log('➕ Adding closed_at column...');
+            await pool.execute("ALTER TABLE student ADD COLUMN closed_at DATETIME DEFAULT NULL");
+            console.log('✅ Added closed_at');
+        } else {
+            console.log('✅ closed_at already exists');
         }
 
         console.log('🎉 Schema fix completed successfully!');
@@ -42,3 +69,4 @@ async function fixSchema() {
 }
 
 fixSchema();
+

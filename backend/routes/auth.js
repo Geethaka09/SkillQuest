@@ -35,7 +35,12 @@ router.put('/update-profile', auth, updateProfile);
 // @route   PUT /api/auth/change-password
 // @desc    Change password
 // @access  Private
-const { changePassword } = require('../controllers/authController');
+const { changePassword, logExit } = require('../controllers/authController');
 router.put('/change-password', auth, changePassword);
+
+// @route   POST /api/auth/log-exit
+// @desc    Log when user exits/closes browser (via sendBeacon)
+// @access  Public (sendBeacon cannot send auth headers)
+router.post('/log-exit', logExit);
 
 module.exports = router;

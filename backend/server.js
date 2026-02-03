@@ -16,6 +16,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(express.text({ type: 'text/plain' })); // For sendBeacon requests
 app.use('/uploads', express.static('uploads'));
 
 

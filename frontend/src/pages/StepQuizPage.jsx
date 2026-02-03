@@ -14,6 +14,7 @@ const StepQuizPage = () => {
     const [answers, setAnswers] = useState({});
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
+    const [quizStartTime, setQuizStartTime] = useState(null); // Track when quiz started
 
     useEffect(() => {
         fetchStepContent();
@@ -22,6 +23,8 @@ const StepQuizPage = () => {
     const fetchStepContent = async () => {
         try {
             setLoading(true);
+            // Capture start time when quiz loads
+            setQuizStartTime(new Date().toISOString());
             const response = await studyPlanService.getStepContent(weekNumber, stepId);
             if (response.success) {
                 setStepData(response);
@@ -75,6 +78,7 @@ const StepQuizPage = () => {
                 planId: stepData.planId,
                 weekNumber: parseInt(weekNumber),
                 stepId: parseInt(stepId),
+                startTime: quizStartTime, // Pass the quiz start time for session tracking
                 answers: answersArray
             });
 
@@ -95,7 +99,17 @@ const StepQuizPage = () => {
     };
 
     const handleContinue = () => {
-        navigate(`/learn/${weekNumber}`);
+        // Navigate to next step if available, otherwise go to dashboard
+        console.log('handleContinue called, result:', result);
+        if (result?.nextStepId) {
+            navigate(`/quiz/${weekNumber}/${result.nextStepId}`);
+        } else if (result?.isWeekComplete) {
+            navigate('/dashboard');
+        } else {
+            // If no nextStepId but week not complete, try next step
+            const nextStep = parseInt(stepId) + 1;
+            navigate(`/quiz/${weekNumber}/${nextStep}`);
+        }
     };
 
     if (loading) {
@@ -158,7 +172,18 @@ const StepQuizPage = () => {
                                         Continue to Dashboard →
                                     </button>
                                 ) : (
-                                    <button className="quiz-btn primary" onClick={handleContinue}>
+                                    <button className="quiz-btn primary" onClick={() => {
+                                        console.log('Continue Learning clicked');
+                                        console.log('result.nextStepId:', result?.nextStepId);
+
+                                        if (result?.nextStepId) {
+                                            // Navigate to next step
+                                            window.location.href = `/quiz/${weekNumber}/${result.nextStepId}`;
+                                        } else {
+                                            // No next step available, go to dashboard
+                                            window.location.href = '/dashboard';
+                                        }
+                                    }}>
                                         Continue Learning →
                                     </button>
                                 )
@@ -167,7 +192,7 @@ const StepQuizPage = () => {
                                     <button className="quiz-btn primary" onClick={handleRetry}>
                                         Try Again
                                     </button>
-                                    <button className="quiz-btn secondary" onClick={handleContinue}>
+                                    <button className="quiz-btn secondary" onClick={() => navigate(`/learn/${weekNumber}`)}>
                                         Review Content
                                     </button>
                                 </>

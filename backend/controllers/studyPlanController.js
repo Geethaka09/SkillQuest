@@ -285,8 +285,9 @@ const submitStepQuiz = async (req, res) => {
         const studentId = req.user.id;
         console.log('Quiz submission payload:', req.body); // Debug log
 
-        const { planId, weekNumber, stepId, answers } = req.body;
+        const { planId, weekNumber, stepId, startTime, answers } = req.body;
         // answers = [{ genQID, response }]
+        // startTime = ISO timestamp from frontend when quiz started
 
         if (!planId) {
             console.error('Missing planId in submission');
@@ -336,11 +337,21 @@ const submitStepQuiz = async (req, res) => {
         let allCorrect = true;
         let score = 0;
 
-        // Format date for MySQL DATETIME
-        const now = new Date();
-        const mysqlDate = now.toISOString().slice(0, 19).replace('T', ' ');
+        // === SYNCHRONIZED TIMESTAMPS ===
+        // Generate SINGLE finishTime at the start - used for ALL rows
+        const finishTime = new Date();
+        const finishedAt = finishTime.toISOString().slice(0, 19).replace('T', ' ');
+
+        // Use startTime from frontend (when quiz loaded), or fallback to finishTime if not provided
+        let attemptedAt;
+        if (startTime) {
+            attemptedAt = new Date(startTime).toISOString().slice(0, 19).replace('T', ' ');
+        } else {
+            attemptedAt = finishedAt; // Fallback: same as finish time
+        }
 
         // Process each answer and insert into quiz_attempts
+        // ALL rows will have the SAME attempted_at and finished_at timestamps
         for (const answer of answers) {
             const correctAnswer = correctAnswersMap[answer.genQID];
             const isCorrect = answer.response === correctAnswer;
@@ -348,12 +359,12 @@ const submitStepQuiz = async (req, res) => {
             if (isCorrect) score++;
             else allCorrect = false;
 
-            // Insert into quiz_attempts
+            // Insert into quiz_attempts with synchronized timestamps
             await pool.execute(
                 `INSERT INTO quiz_attempts 
                  (plan_id, week_number, step_ID, gen_QID, attempt_number, student_ID, user_response, is_correct, score, attempted_at, finished_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [planId, weekNumber, stepId, answer.genQID, currentAttempt, studentId, answer.response, isCorrect ? 1 : 0, isCorrect ? 1 : 0, mysqlDate, mysqlDate]
+                [planId, weekNumber, stepId, answer.genQID, currentAttempt, studentId, answer.response, isCorrect ? 1 : 0, isCorrect ? 1 : 0, attemptedAt, finishedAt]
             );
         }
 
@@ -392,12 +403,16 @@ const submitStepQuiz = async (req, res) => {
         }
 
         // Check if all steps in this week are now completed
+        // Use DISTINCT step_ID since each step has multiple question rows
         const [weekSteps] = await pool.execute(
-            `SELECT COUNT(*) as total, SUM(CASE WHEN step_status = 'COMPLETED' THEN 1 ELSE 0 END) as completed
+            `SELECT 
+                COUNT(DISTINCT step_ID) as total,
+                COUNT(DISTINCT CASE WHEN step_status = 'COMPLETED' THEN step_ID END) as completed
              FROM study_plan WHERE student_ID = ? AND week_number = ?`,
             [studentId, weekNumber]
         );
 
+        console.log('Week completion check:', weekSteps[0]); // Debug log
         const isWeekComplete = weekSteps[0].total > 0 && weekSteps[0].completed === weekSteps[0].total;
 
         // If week is complete, record completion time for time-based unlock
@@ -412,6 +427,18 @@ const submitStepQuiz = async (req, res) => {
             // Note: Next week will only unlock after 1 week has passed (handled in getStudentProgress)
         }
 
+        // Check if next step exists for navigation
+        let nextStepExists = false;
+        const nextStepId = stepId + 1;
+        if (allCorrect && !isWeekComplete) {
+            const [nextStepCheck] = await pool.execute(
+                `SELECT COUNT(*) as count FROM study_plan 
+                 WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
+                [studentId, weekNumber, nextStepId]
+            );
+            nextStepExists = nextStepCheck[0].count > 0;
+        }
+
         res.json({
             success: true,
             passed: allCorrect,
@@ -420,6 +447,8 @@ const submitStepQuiz = async (req, res) => {
             attemptNumber: currentAttempt,
             xpEarned: allCorrect ? 50 + (answers.length * 10) : 0,
             isWeekComplete: isWeekComplete && allCorrect,
+            nextStepId: nextStepExists ? nextStepId : null, // Include next step for navigation
+            weekNumber: weekNumber, // Include for frontend navigation
             message: allCorrect
                 ? (isWeekComplete
                     ? 'Congratulations! You completed this week! Return to dashboard to continue.'

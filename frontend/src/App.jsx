@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -43,6 +44,35 @@ const QuizRoute = ({ children }) => {
 };
 
 function App() {
+  // Track when user exits/closes the browser or tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Only log exit if user is authenticated
+      if (authService.isAuthenticated()) {
+        const user = authService.getCurrentUser();
+        const studentId = user?.id;
+
+        if (studentId) {
+          const data = JSON.stringify({
+            student_ID: studentId,
+            timestamp: new Date().toISOString()
+          });
+
+          // Use sendBeacon with Blob for reliable delivery even when page is closing
+          // Blob with application/json ensures proper parsing on backend
+          const blob = new Blob([data], { type: 'application/json' });
+          navigator.sendBeacon('http://localhost:5000/api/auth/log-exit', blob);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -110,3 +140,4 @@ function App() {
 }
 
 export default App;
+
