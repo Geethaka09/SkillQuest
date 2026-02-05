@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { studyPlanService } from '../services/api';
 import Layout from '../components/Layout';
 import '../styles/learningPage.css';
+import ReactMarkdown from 'react-markdown';
 
 const LearningPage = () => {
     const { weekNumber } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [weekData, setWeekData] = useState(null);
-    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [currentStepIndex, setCurrentStepIndex] = useState(null);
+    const [viewMode, setViewMode] = useState('overview'); // 'overview' or 'learning'
+    const [isAnimating, setIsAnimating] = useState(false);
 
     useEffect(() => {
         fetchWeekContent();
@@ -22,9 +26,20 @@ const LearningPage = () => {
             const response = await studyPlanService.getWeekContent(weekNumber);
             if (response.success) {
                 setWeekData(response);
-                // Find first non-completed step
-                const firstActiveIndex = response.steps.findIndex(s => s.status !== 'COMPLETED');
-                if (firstActiveIndex >= 0) setCurrentStepIndex(firstActiveIndex);
+
+                // Auto-open if coming from quiz (resume: true)
+                if (location.state?.resume) {
+                    // Find first non-completed step or first step
+                    const activeIndex = response.steps.findIndex(s => s.status !== 'COMPLETED') !== -1
+                        ? response.steps.findIndex(s => s.status !== 'COMPLETED')
+                        : 0;
+
+                    setCurrentStepIndex(activeIndex);
+                    setViewMode('learning');
+
+                    // Clear state
+                    window.history.replaceState({}, document.title);
+                }
             } else {
                 setError('Failed to load content');
             }
@@ -38,10 +53,28 @@ const LearningPage = () => {
 
     const handleStepClick = (index) => {
         const step = weekData.steps[index];
-        // Only allow clicking completed or in-progress steps
-        if (step.status !== 'LOCKED') {
+        // First step is always accessible, others need to be unlocked
+        const isAccessible = index === 0 || step.status !== 'LOCKED';
+        if (isAccessible) {
             setCurrentStepIndex(index);
+            if (viewMode === 'overview') {
+                // Trigger animation
+                setIsAnimating(true);
+                setTimeout(() => {
+                    setViewMode('learning');
+                    setIsAnimating(false);
+                }, 400); // Match CSS animation duration
+            }
         }
+    };
+
+    const handleBackToOverview = () => {
+        setIsAnimating(true);
+        setTimeout(() => {
+            setViewMode('overview');
+            setCurrentStepIndex(null);
+            setIsAnimating(false);
+        }, 300);
     };
 
     const handleTryQuiz = () => {
@@ -77,12 +110,65 @@ const LearningPage = () => {
         );
     }
 
-    const currentStep = weekData.steps[currentStepIndex];
+    const currentStep = currentStepIndex !== null ? weekData.steps[currentStepIndex] : null;
 
+    // ================== OVERVIEW MODE ==================
+    if (viewMode === 'overview') {
+        return (
+            <Layout>
+                <div className={`w3-container overview-container ${isAnimating ? 'animating-out' : ''}`}>
+                    <div className="overview-header">
+                        <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                            ← Back to Dashboard
+                        </button>
+                        <div className="overview-title">
+                            <span className="week-badge">Week {weekData.weekNumber}</span>
+                            <h1>{weekData.moduleName}</h1>
+                            <p className="overview-subtitle">Select a step to begin learning</p>
+                        </div>
+                    </div>
+
+                    <div className="steps-overview">
+                        {weekData.steps.map((step, index) => {
+                            // First step is always accessible
+                            const isLocked = index !== 0 && step.status === 'LOCKED';
+                            const displayStatus = index === 0 && step.status === 'LOCKED' ? 'IN_PROGRESS' : step.status;
+
+                            return (
+                                <div
+                                    key={step.stepId}
+                                    className={`step-card ${displayStatus.toLowerCase()} ${isLocked ? 'locked' : ''}`}
+                                    onClick={() => handleStepClick(index)}
+                                >
+                                    <div className="step-card-number">
+                                        {displayStatus === 'COMPLETED' && <span className="check-icon">✓</span>}
+                                        {isLocked && <span className="lock-icon">🔒</span>}
+                                        {(displayStatus === 'IN_PROGRESS' || (index === 0 && !isLocked && displayStatus !== 'COMPLETED')) && <span className="step-num">{step.stepId}</span>}
+                                    </div>
+                                    <div className="step-card-content">
+                                        <h3>Step {step.stepId}</h3>
+                                        <p className="step-status-text">
+                                            {displayStatus === 'COMPLETED' && 'Completed'}
+                                            {displayStatus === 'IN_PROGRESS' && 'Continue learning'}
+                                            {isLocked && 'Complete previous step to unlock'}
+                                        </p>
+                                    </div>
+                                    {!isLocked && (
+                                        <div className="step-card-arrow">→</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
+    // ================== LEARNING MODE ==================
     return (
         <Layout>
-            <div className="w3-container">
-                {/* W3School-style Layout */}
+            <div className={`w3-container learning-container ${isAnimating ? 'animating-in' : 'active'}`}>
                 <div className="w3-layout">
                     {/* Left Sidebar - Step Navigation */}
                     <aside className="w3-sidebar">
@@ -91,23 +177,29 @@ const LearningPage = () => {
                             <p>{weekData.moduleName}</p>
                         </div>
                         <nav className="step-nav">
-                            {weekData.steps.map((step, index) => (
-                                <div
-                                    key={step.stepId}
-                                    className={`step-nav-item ${index === currentStepIndex ? 'active' : ''} ${step.status.toLowerCase()}`}
-                                    onClick={() => handleStepClick(index)}
-                                >
-                                    <span className="step-icon">
-                                        {step.status === 'COMPLETED' && '✓'}
-                                        {step.status === 'IN_PROGRESS' && '▶'}
-                                        {step.status === 'LOCKED' && '🔒'}
-                                    </span>
-                                    <span className="step-label">Step {step.stepId}</span>
-                                </div>
-                            ))}
+                            {weekData.steps.map((step, index) => {
+                                // First step is always accessible
+                                const isLocked = index !== 0 && step.status === 'LOCKED';
+                                const displayStatus = index === 0 && step.status === 'LOCKED' ? 'IN_PROGRESS' : step.status;
+
+                                return (
+                                    <div
+                                        key={step.stepId}
+                                        className={`step-nav-item ${index === currentStepIndex ? 'active' : ''} ${displayStatus.toLowerCase()}`}
+                                        onClick={() => handleStepClick(index)}
+                                    >
+                                        <span className="step-icon">
+                                            {displayStatus === 'COMPLETED' && '✓'}
+                                            {displayStatus === 'IN_PROGRESS' && '▶'}
+                                            {isLocked && '🔒'}
+                                        </span>
+                                        <span className="step-label">Step {step.stepId}</span>
+                                    </div>
+                                );
+                            })}
                         </nav>
-                        <button className="w3-btn w3-back" onClick={() => navigate('/dashboard')}>
-                            ← Back to Dashboard
+                        <button className="w3-btn w3-back" onClick={handleBackToOverview}>
+                            ← Back to Steps
                         </button>
                     </aside>
 
@@ -127,15 +219,11 @@ const LearningPage = () => {
                             </div>
                         </div>
 
-                        {/* Learning Content Card - W3School Style */}
+                        {/* Learning Content Card */}
                         <div className="w3-content-card">
-                            <div className="w3-content-header">
-                                <span className="w3-green-bar"></span>
-                                <h2>📚 Learning Content</h2>
-                            </div>
                             <div className="w3-content-body">
                                 <div className="w3-tutorial-content">
-                                    {currentStep.learningContent}
+                                    <ReactMarkdown>{currentStep.learningContent}</ReactMarkdown>
                                 </div>
                             </div>
                         </div>
@@ -151,7 +239,7 @@ const LearningPage = () => {
                                 <button
                                     className="w3-btn w3-quiz-btn"
                                     onClick={handleTryQuiz}
-                                    disabled={currentStep.status === 'LOCKED'}
+                                    disabled={currentStepIndex !== 0 && currentStep.status === 'LOCKED'}
                                 >
                                     Try Quiz →
                                 </button>

@@ -99,17 +99,8 @@ const StepQuizPage = () => {
     };
 
     const handleContinue = () => {
-        // Navigate to next step if available, otherwise go to dashboard
-        console.log('handleContinue called, result:', result);
-        if (result?.nextStepId) {
-            navigate(`/quiz/${weekNumber}/${result.nextStepId}`);
-        } else if (result?.isWeekComplete) {
-            navigate('/dashboard');
-        } else {
-            // If no nextStepId but week not complete, try next step
-            const nextStep = parseInt(stepId) + 1;
-            navigate(`/quiz/${weekNumber}/${nextStep}`);
-        }
+        // Redirect to learning page and auto-resume
+        navigate(`/learn/${weekNumber}`, { state: { resume: true } });
     };
 
     if (loading) {
@@ -167,26 +158,9 @@ const StepQuizPage = () => {
                         </div>
                         <div className="result-actions">
                             {result.passed ? (
-                                result.isWeekComplete ? (
-                                    <button className="quiz-btn primary" onClick={() => navigate('/dashboard')}>
-                                        Continue to Dashboard →
-                                    </button>
-                                ) : (
-                                    <button className="quiz-btn primary" onClick={() => {
-                                        console.log('Continue Learning clicked');
-                                        console.log('result.nextStepId:', result?.nextStepId);
-
-                                        if (result?.nextStepId) {
-                                            // Navigate to next step
-                                            window.location.href = `/quiz/${weekNumber}/${result.nextStepId}`;
-                                        } else {
-                                            // No next step available, go to dashboard
-                                            window.location.href = '/dashboard';
-                                        }
-                                    }}>
-                                        Continue Learning →
-                                    </button>
-                                )
+                                <button className="quiz-btn primary" onClick={() => navigate(`/learn/${weekNumber}`, { state: { resume: true } })}>
+                                    Continue Learning →
+                                </button>
                             ) : (
                                 <>
                                     <button className="quiz-btn primary" onClick={handleRetry}>
@@ -200,7 +174,7 @@ const StepQuizPage = () => {
                         </div>
                     </div>
                 </div>
-            </Layout>
+            </Layout >
         );
     }
 

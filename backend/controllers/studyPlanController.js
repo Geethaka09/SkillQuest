@@ -179,9 +179,15 @@ const getWeekContent = async (req, res) => {
         const stepsGrouped = {};
         steps.forEach(step => {
             if (!stepsGrouped[step.step_ID]) {
+                // Ensure Step 1 is always accessible (if locked, show as in-progress)
+                let status = step.step_status;
+                if (step.step_ID === 1 && status === 'LOCKED') {
+                    status = 'IN_PROGRESS';
+                }
+
                 stepsGrouped[step.step_ID] = {
                     stepId: step.step_ID,
-                    status: step.step_status,
+                    status: status,
                     learningContent: step.learning_content,
                     questions: []
                 };
