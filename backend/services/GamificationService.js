@@ -149,7 +149,7 @@ class GamificationService {
     static async getDashboardPayload(userId) {
         // Fetch fresh user data from database
         const [rows] = await pool.execute(
-            'SELECT total_xp, current_level, current_streak, level FROM student WHERE student_ID = ?',
+            'SELECT total_xp, current_level, current_streak, longest_streak, last_login, level FROM student WHERE student_ID = ?',
             [userId]
         );
 
@@ -157,8 +157,27 @@ class GamificationService {
             throw new Error('User not found');
         }
 
-        const { total_xp, current_streak, level } = rows[0];
+        let { total_xp, current_streak, longest_streak, last_login, level } = rows[0];
         const totalXP = total_xp || 0;
+
+        // SANITY CHECK (Option C): If last_login is stale but streak is high, reset it
+        // This catches test data or corrupted streaks
+        if (last_login && current_streak > 0) {
+            const today = new Date();
+            const lastDate = new Date(last_login);
+            const daysDiff = this.daysDifference(today, lastDate);
+
+            if (daysDiff > 1) {
+                // Streak is stale - should have been reset but wasn't
+                // Auto-correct: reset to 0 and update DB
+                current_streak = 0;
+                await pool.execute(
+                    'UPDATE student SET current_streak = 0 WHERE student_ID = ?',
+                    [userId]
+                );
+                console.log(`⚠️ Auto-reset stale streak for user ${userId}`);
+            }
+        }
 
         // Calculate current level using quadratic formula
         const currentLevel = this.calculateLevel(totalXP);
@@ -185,6 +204,7 @@ class GamificationService {
             xpToNextLevel: nextLevelXP - totalXP, // Remaining XP to level up
             progressPercentage: parseFloat(progressPercentage.toFixed(2)),
             currentStreak: current_streak || 0,
+            longestStreak: longest_streak || 0,
             levelTitle,
             stage: level || 'beginner'
         };
@@ -253,18 +273,14 @@ class GamificationService {
             [userId, today]
         );
 
-        // Get quizzes passed today (distinct step completions)
-        const [quizzesToday] = await pool.execute(
-            `SELECT COUNT(DISTINCT step_ID) as passed_quizzes
+        // Get quizzes passed today on FIRST attempt (Sharpshooter)
+        const [sharpshooterToday] = await pool.execute(
+            `SELECT COUNT(DISTINCT step_ID) as perfect_quizzes
              FROM study_plan 
              WHERE student_ID = ? 
              AND step_status = 'COMPLETED'
-             AND EXISTS (
-                SELECT 1 FROM quiz_attempts qa 
-                WHERE qa.student_ID = study_plan.student_ID 
-                AND qa.step_ID = study_plan.step_ID 
-                AND DATE(qa.finished_at) = ?
-             )`,
+             AND attempt_count = 1
+             AND DATE(completed_at) = ?`,
             [userId, today]
         );
 
@@ -279,7 +295,7 @@ class GamificationService {
         const streakUpdatedToday = lastActivityDate === today;
 
         const stepsCompleted = stepsToday[0]?.completed_steps || 0;
-        const quizzesPassed = quizzesToday[0]?.passed_quizzes || 0;
+        const perfectQuizzes = sharpshooterToday[0]?.perfect_quizzes || 0;
 
         // Calculate goals
         const goals = [
@@ -292,10 +308,10 @@ class GamificationService {
             },
             {
                 id: 2,
-                text: 'Complete a graded assessment',
-                progress: quizzesPassed > 0 ? 'COMPLETED!' : null,
-                xp: '+300 XP',
-                completed: quizzesPassed > 0
+                text: 'Sharpshooter: Ace a quiz on first try',
+                progress: perfectQuizzes > 0 ? 'COMPLETED!' : null,
+                xp: '+500 XP',
+                completed: perfectQuizzes > 0
             },
             {
                 id: 3,
@@ -313,9 +329,27 @@ class GamificationService {
             completedGoals,
             totalGoals: 3,
             stepsCompletedToday: stepsCompleted,
-            quizzesPassedToday: quizzesPassed,
+            quizzesPassedToday: perfectQuizzes,
             streakMaintained: streakUpdatedToday
         };
+    }
+
+    /**
+     * Get user earned badges
+     * 
+     * @param {string} userId - Student ID
+     * @returns {Promise<Array>} List of earned badges
+     */
+    static async getUserBadges(userId) {
+        // Fetch badges from student_badges table
+        // Assumes table has relevant badge info or we select all
+        // We'll select everything to be safe and adaptable
+        const [rows] = await pool.execute(
+            'SELECT * FROM student_badges WHERE student_ID = ? ORDER BY awarded_at DESC',
+            [userId]
+        );
+
+        return rows;
     }
 }
 

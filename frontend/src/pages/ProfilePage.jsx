@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { authService } from '../services/api';
+import { authService, gamificationService } from '../services/api';
 import ProfileUploadModal from '../components/ProfileUploadModal';
 import EditProfileModal from '../components/EditProfileModal';
 import '../styles/profile.css';
@@ -13,6 +13,8 @@ const ProfilePage = () => {
     const [accountLoading, setAccountLoading] = useState(true);
     const [personalBests, setPersonalBests] = useState(null);
     const [bestsLoading, setBestsLoading] = useState(true);
+    const [badges, setBadges] = useState([]);
+    const [badgesLoading, setBadgesLoading] = useState(true);
 
     // Fetch account info and personal bests on mount
     useEffect(() => {
@@ -42,8 +44,22 @@ const ProfilePage = () => {
             }
         };
 
+        const fetchBadges = async () => {
+            try {
+                const response = await gamificationService.getUserBadges();
+                if (response.success) {
+                    setBadges(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch badges:', error);
+            } finally {
+                setBadgesLoading(false);
+            }
+        };
+
         fetchAccountInfo();
         fetchPersonalBests();
+        fetchBadges();
     }, []);
 
     const handleUploadSuccess = (newProfilePic) => {
@@ -69,12 +85,14 @@ const ProfilePage = () => {
         });
     };
 
-    const badges = [
-        { id: 1, name: 'Pointers King', icon: '🏆' },
-        { id: 2, name: 'Array Master', icon: '🏆' },
-        { id: 3, name: 'OOP', icon: '🏆' },
-        { id: 4, name: 'Data Structures', icon: '🏆' },
+    const PLACEHOLDER_BADGES = [
+        { id: 'p1', name: 'Mystery Badge', icon: null, locked: true },
+        { id: 'p2', name: 'Mystery Badge', icon: null, locked: true },
+        { id: 'p3', name: 'Mystery Badge', icon: null, locked: true },
+        { id: 'p4', name: 'Mystery Badge', icon: null, locked: true },
     ];
+
+    const displayBadges = badges.length > 0 ? badges : PLACEHOLDER_BADGES;
 
     return (
         <Layout>
@@ -111,19 +129,32 @@ const ProfilePage = () => {
                     {/* Top Row - Badges */}
                     <div className="badges-section">
                         <h2>Badges Earned</h2>
-                        <div className="badges-grid">
-                            {badges.slice(0, 4).map((badge) => (
-                                <div key={badge.id} className="badge-item">
-                                    <div className="badge-icon">
-                                        <svg viewBox="0 0 24 24" fill="none">
-                                            <circle cx="12" cy="8" r="6" stroke="currentColor" strokeWidth="2" />
-                                            <path d="M8 14L6 22L12 19L18 22L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    </div>
-                                    <span className="badge-name">{badge.name}</span>
+                        {badgesLoading ? (
+                            <div className="badges-grid">Loading badges...</div>
+                        ) : (
+                            <>
+                                <div className="badges-grid">
+                                    {displayBadges.map((badge, index) => (
+                                        <div key={index} className={`badge-item ${badge.locked ? 'locked' : ''}`}>
+                                            <div className="badge-icon">
+                                                {/* Render icon if available, otherwise default trophy */}
+                                                {badge.icon ? (
+                                                    <img src={badge.icon} alt={badge.badge_name || badge.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: '24px' }}>{badge.locked ? '🔒' : '🏆'}</span>
+                                                )}
+                                            </div>
+                                            <span className="badge-name">{badge.badge_name || badge.name || 'Badge'}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                                {badges.length === 0 && (
+                                    <div className="no-badges-message">
+                                        <p className="encouragement">Unlock these badges by completing your daily goals!</p>
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     {/* Personal Best Records Card */}

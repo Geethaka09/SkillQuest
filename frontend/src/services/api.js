@@ -149,6 +149,11 @@ export const gamificationService = {
     getDailyGoals: async () => {
         const response = await api.get('/gamification/daily-goals');
         return response.data;
+    },
+
+    getUserBadges: async () => {
+        const response = await api.get('/gamification/badges');
+        return response.data;
     }
 };
 

@@ -383,12 +383,16 @@ const submitStepQuiz = async (req, res) => {
         );
 
         if (allCorrect) {
-            // Mark current step as COMPLETED with completion timestamp
+            // Mark current step as COMPLETED with both timestamps
+            // started_at = frontend's startTime (when user clicked on step)
+            // completed_at = NOW() (when submit was processed)
             await pool.execute(
                 `UPDATE study_plan 
-                 SET step_status = 'COMPLETED', completed_at = NOW() 
+                 SET step_status = 'COMPLETED', 
+                     started_at = ?, 
+                     completed_at = NOW() 
                  WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
-                [studentId, weekNumber, stepId]
+                [attemptedAt, studentId, weekNumber, stepId]
             );
 
             // Unlock next step (set to IN_PROGRESS)

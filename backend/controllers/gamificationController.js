@@ -115,4 +115,28 @@ const getDailyGoals = async (req, res) => {
     }
 };
 
-module.exports = { getDashboardStats, addXP, getDailyGoals };
+/**
+ * Get user badges
+ * 
+ * @route GET /api/gamification/badges
+ * @access Private
+ */
+const getUserBadges = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const badges = await GamificationService.getUserBadges(userId);
+
+        res.json({
+            success: true,
+            data: badges
+        });
+    } catch (error) {
+        console.error('Get user badges error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};
+
+module.exports = { getDashboardStats, addXP, getDailyGoals, getUserBadges };

@@ -166,6 +166,47 @@
     line-height: 1.3;
 }
 
+/* Locked Badge Styles */
+.badge-item.locked {
+    filter: grayscale(100%);
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.badge-item.locked:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.badge-item.locked .badge-icon {
+    border-color: #cbd5e1;
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+}
+
+.badge-item.locked .badge-name {
+    color: #94a3b8;
+}
+
+.no-badges-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding-top: 16px;
+    width: 100%;
+}
+
+.no-badges-message p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.no-badges-message .encouragement {
+    margin-top: 8px;
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 /* Sidebar */
 .sidebar {
     display: flex;
