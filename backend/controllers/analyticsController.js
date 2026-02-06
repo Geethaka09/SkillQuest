@@ -23,11 +23,11 @@ const getWeeklyEngagement = async (req, res) => {
                 DAYOFWEEK(attempted_at) as day_num,
                 SUM(
                     GREATEST(0, 
-                        TIMESTAMPDIFF(MINUTE, attempted_at, 
+                        TIMESTAMPDIFF(SECOND, attempted_at, 
                             COALESCE(finished_at, DATE_ADD(attempted_at, INTERVAL 5 MINUTE))
                         )
                     )
-                ) / 60 as hours
+                ) / 3600 as hours
              FROM quiz_attempts 
              WHERE student_ID = ? 
                AND attempted_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
