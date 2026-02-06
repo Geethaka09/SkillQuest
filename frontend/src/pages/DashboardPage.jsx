@@ -104,47 +104,94 @@ const DashboardPage = () => {
     }, []);
 
     // Fetch RL recommendation
+    // Load cached RL state (prevent auto-trigger on refresh)
     useEffect(() => {
-        const fetchRlRecommendation = async () => {
+        const loadRLState = () => {
             try {
-                const response = await rlService.getRecommendation();
-                console.log('🔮 RL CLIENT RESPONSE:', response); // DEBUG LOG
-
-                if (response.success) {
-                    const rec = response.recommendation;
-                    console.log('🔮 Action Code:', rec?.action_code); // DEBUG LOG
-                    setRlRecommendation(rec);
-
-                    // Handle EXTRA_GOALS immediately
-                    if (rec?.action_code === 'EXTRA_GOALS') {
-                        setGoalsData(prev => ({
-                            ...prev,
-                            goals: [
-                                {
-                                    id: 99,
-                                    text: '✨ Bonus Goal: Log in tomorrow',
-                                    progress: null,
-                                    xp: '+50 XP',
-                                    completed: false,
-                                    isBonus: true
-                                },
-                                ...prev.goals
-                            ]
-                        }));
+                // 1. Check for active boost (Highest Priority)
+                const savedBoost = localStorage.getItem('activeRLBoost');
+                if (savedBoost) {
+                    const boostData = JSON.parse(savedBoost);
+                    if (boostData.expiresAt > Date.now()) {
+                        console.log('🔥 Resuming active boost from storage');
+                        setRlRecommendation({
+                            action_code: 'MULTIPLIER_BOOST',
+                            action_name: 'XP Boost',
+                            description: '2x XP active!'
+                        });
+                        setRlLoading(false);
+                        return; // Boost overrides everything
+                    } else {
+                        localStorage.removeItem('activeRLBoost');
                     }
                 }
+
+                // 2. Check for cached general RL state (Rank, Goals, etc.)
+                const cachedState = localStorage.getItem('cachedRLState');
+                if (cachedState) {
+                    const rec = JSON.parse(cachedState);
+                    console.log('📂 Loaded cached RL state:', rec.action_code);
+                    setRlRecommendation(rec);
+                }
             } catch (error) {
-                console.error('Failed to fetch RL recommendation:', error);
+                console.error('Failed to load RL cache:', error);
             } finally {
                 setRlLoading(false);
             }
         };
 
-        fetchRlRecommendation();
+        loadRLState();
     }, []);
 
+    // Robust Goal Injection: Ensure bonus goal exists even after API fetch updates
+    useEffect(() => {
+        if (rlRecommendation?.action_code === 'EXTRA_GOALS' && goalsData?.goals) {
+            const hasBonus = goalsData.goals.some(g => g.id === 99);
+            if (!hasBonus) {
+                console.log('✨ Injecting Bonus Goal (Reactive)');
+                setGoalsData(prev => ({
+                    ...prev,
+                    goals: [
+                        {
+                            id: 99,
+                            text: '✨ Bonus Goal: Log in tomorrow',
+                            progress: null,
+                            xp: '+50 XP',
+                            completed: false,
+                            isBonus: true
+                        },
+                        ...prev.goals
+                    ]
+                }));
+            }
+        }
+    }, [rlRecommendation, goalsData]);
+
     // Timer state for Multiplier Boost
-    const [timeLeft, setTimeLeft] = useState(1200); // 20 minutes = 1200 seconds
+    const [timeLeft, setTimeLeft] = useState(0);
+
+    // Initialize/Sync Timer
+    useEffect(() => {
+        const savedBoost = localStorage.getItem('activeRLBoost');
+        if (savedBoost) {
+            const boostData = JSON.parse(savedBoost);
+            const remaining = Math.floor((boostData.expiresAt - Date.now()) / 1000);
+
+            if (remaining > 0) {
+                setTimeLeft(remaining);
+                // Also force state if not already set (e.g. initial load)
+                if (rlRecommendation?.action_code !== 'MULTIPLIER_BOOST') {
+                    setRlRecommendation({
+                        action_code: 'MULTIPLIER_BOOST',
+                        action_name: 'XP Boost',
+                        description: '2x XP active!'
+                    });
+                }
+            } else {
+                localStorage.removeItem('activeRLBoost');
+            }
+        }
+    }, []);
 
     // Calculate total steps for modules card
     const totalSteps = progressData.modules.reduce((acc, m) => acc + m.totalSteps, 0);
@@ -155,7 +202,14 @@ const DashboardPage = () => {
         let interval;
         if (rlRecommendation?.action_code === 'MULTIPLIER_BOOST' && timeLeft > 0) {
             interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
+                setTimeLeft((prev) => {
+                    const newVal = prev - 1;
+                    if (newVal <= 0) {
+                        localStorage.removeItem('activeRLBoost');
+                        // Optional: clear banner? keeping simplest for now
+                    }
+                    return newVal;
+                });
             }, 1000);
         }
         return () => clearInterval(interval);

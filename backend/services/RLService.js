@@ -154,13 +154,16 @@ class RLService {
             const metrics = await this.getStudentMetrics(studentId);
 
             // Call RL API
-            console.log('✅ USING UPDATED RLService.js with 30s timeout'); // PROOF OF UPDATE
             const response = await axios.post(`${RL_API_URL}/predict`, metrics, {
                 headers: { 'Content-Type': 'application/json' },
                 timeout: 30000 // Increased to 30s for Azure cold start
             });
 
-            // Return the API response directly (it already has success, recommendation, etc.)
+            // Return the API response directly
+
+
+
+
             return response.data;
         } catch (error) {
             console.error('RL API Error:', error.message);
@@ -208,6 +211,87 @@ class RLService {
                 success: false,
                 error: error.message
             };
+        }
+    }
+
+    /**
+     * Select a random unearned badge for a student
+     * @param {string} studentId - Student ID
+     * @returns {Promise<Object|null>} Badge object or null if no badges available
+     */
+    static async selectRandomBadge(studentId) {
+        try {
+            // Get badges the student doesn't have yet
+            const [availableBadges] = await pool.execute(`
+                SELECT b.* FROM badges b
+                WHERE b.badge_ID NOT IN (
+                    SELECT badge_ID FROM student_badges WHERE student_ID = ?
+                )
+                LIMIT 10
+            `, [studentId]);
+
+            if (availableBadges.length === 0) {
+                console.log('No unearned badges available for student:', studentId);
+                return null;
+            }
+
+            // Pick a random badge
+            const randomBadge = availableBadges[Math.floor(Math.random() * availableBadges.length)];
+
+            // Award badge to student
+            await pool.execute(`
+                INSERT INTO student_badges (student_ID, badge_ID, awarded_at)
+                VALUES (?, ?, NOW())
+            `, [studentId, randomBadge.badge_ID]);
+
+            console.log(`Awarded badge ${randomBadge.badge_ID} to student ${studentId}`);
+            return randomBadge;
+        } catch (error) {
+            console.error('Badge selection error:', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Calculate student's rank percentile based on total_xp
+     * @param {string} studentId - Student ID
+     * @returns {Promise<Object>} Rank information {percentile, rank_text}
+     */
+    static async calculateStudentRank(studentId) {
+        try {
+            // Get total number of students
+            const [totalResult] = await pool.execute('SELECT COUNT(*) as total FROM student');
+            const totalStudents = totalResult[0].total;
+
+            if (totalStudents === 0) return { percentile: 100, rank_text: 'Top 0%' };
+
+            // Get student's XP
+            const [studentData] = await pool.execute(
+                'SELECT total_xp FROM student WHERE student_ID = ?',
+                [studentId]
+            );
+
+            if (studentData.length === 0) return { percentile: 0, rank_text: 'Unranked' };
+
+            const studentXP = studentData[0].total_xp;
+
+            // Count students with less XP
+            const [rankResult] = await pool.execute(
+                'SELECT COUNT(*) as students_below FROM student WHERE total_xp < ?',
+                [studentXP]
+            );
+
+            const studentsBelowCount = rankResult[0].students_below;
+            const percentile = Math.round((studentsBelowCount / totalStudents) * 100);
+
+            // Convert to "Top X%" format
+            const topPercentile = 100 - percentile;
+            const rank_text = `Top ${topPercentile}%`;
+
+            return { percentile: topPercentile, rank_text };
+        } catch (error) {
+            console.error('Rank calculation error:', error.message);
+            return { percentile: 50, rank_text: 'Top 50%' }; // Default fallback
         }
     }
 }

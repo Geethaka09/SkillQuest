@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { studyPlanService } from '../services/api';
 import Layout from '../components/Layout';
 import '../styles/stepQuiz.css';
+import RLToast from '../components/RLToast';
+// Import Dashboard CSS for badge styles if not present (might need to copy styles or import)
+import '../styles/dashboard.css'; // Reusing badge modal styles
 
 const StepQuizPage = () => {
     const { weekNumber, stepId } = useParams();
@@ -15,6 +18,10 @@ const StepQuizPage = () => {
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [quizStartTime, setQuizStartTime] = useState(null); // Track when quiz started
+
+    // RL State
+    const [rlAction, setRlAction] = useState(null);
+    const [showBoostToast, setShowBoostToast] = useState(false);
 
     useEffect(() => {
         fetchStepContent();
@@ -83,6 +90,35 @@ const StepQuizPage = () => {
             });
 
             setResult(response);
+
+            // Handle RL Recommendation
+            if (response.rlRecommendation) {
+                const rec = response.rlRecommendation;
+                console.log('🔮 Quiz RL Action:', rec);
+                setRlAction(rec);
+
+                if (rec.action_code === 'MULTIPLIER_BOOST') {
+                    // Show toast
+                    setShowBoostToast(true);
+
+                    // Activate persistent boost timer (20 mins)
+                    const expiresAt = Date.now() + (20 * 60 * 1000);
+                    localStorage.setItem('activeRLBoost', JSON.stringify({
+                        action_code: 'MULTIPLIER_BOOST',
+                        timestamp: Date.now(),
+                        expiresAt: expiresAt
+                    }));
+                }
+
+                // Cache persistent actions for Dashboard display (Rank, Goals)
+                // Exclude BADGE_INJECTION (one-time) and STANDARD_XP
+                if (['RANK_COMPARISON', 'EXTRA_GOALS'].includes(rec.action_code)) {
+                    localStorage.setItem('cachedRLState', JSON.stringify(rec));
+                } else if (rec.action_code !== 'MULTIPLIER_BOOST') {
+                    // For Badges/Standard, clear previous cache so we don't show old state
+                    localStorage.removeItem('cachedRLState');
+                }
+            }
 
         } catch (err) {
             setError('Failed to submit quiz. Please try again.');
@@ -174,6 +210,34 @@ const StepQuizPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* RL Toast Notification */}
+                <RLToast
+                    show={showBoostToast}
+                    onClose={() => setShowBoostToast(false)}
+                />
+
+                {/* RL Badge Celebration Modal */}
+                {
+                    rlAction?.action_code === 'BADGE_INJECTION' && rlAction.badge && (
+                        <div className="modal-overlay">
+                            <div className="badge-modal" onClick={e => e.stopPropagation()}>
+                                <div className="badge-shine"></div>
+                                {/* Use icon_url or default emoji if image fails */}
+                                <span className="badge-emoji">🏅</span>
+                                <h2>Badge Unlocked!</h2>
+                                <p>You've earned the <strong>{rlAction.badge.name}</strong>!</p>
+                                <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>{rlAction.badge.description}</p>
+                                <button
+                                    className="claim-btn"
+                                    onClick={() => setRlAction(null)}
+                                >
+                                    Awesome!
+                                </button>
+                            </div>
+                        </div>
+                    )
+                }
             </Layout >
         );
     }

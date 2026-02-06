@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const GamificationService = require('../services/GamificationService');
+const RLService = require('../services/RLService');
 
 /**
  * Get student's learning progress from study_plan table
@@ -382,7 +383,14 @@ const submitStepQuiz = async (req, res) => {
             [currentAttempt, studentId, weekNumber, stepId]
         );
 
-        if (allCorrect) {
+        // Calculate Passed Status (>= 60%)
+        // FIXED: Use questions.length (DB source of truth) not answers.length (client payload)
+        const totalQuestions = questions.length;
+        const percentage = totalQuestions > 0 ? (score / totalQuestions) : 0;
+        const passed = percentage >= 0.6;
+        // allCorrect is already set in the loop
+
+        if (passed) {
             // Mark current step as COMPLETED with both timestamps
             // started_at = frontend's startTime (when user clicked on step)
             // completed_at = NOW() (when submit was processed)
@@ -404,8 +412,8 @@ const submitStepQuiz = async (req, res) => {
                 [studentId, weekNumber, nextStepId]
             );
 
-            // Award XP for passing the quiz (50 base + 10 per question)
-            const xpEarned = 50 + (answers.length * 10);
+            // Award XP for passing the quiz (50 base + 10 per correct answer)
+            const xpEarned = 50 + (score * 10);
             await GamificationService.addXP(studentId, xpEarned);
 
             // Update streak (this updates last_activity_date)
@@ -426,7 +434,7 @@ const submitStepQuiz = async (req, res) => {
         const isWeekComplete = weekSteps[0].total > 0 && weekSteps[0].completed === weekSteps[0].total;
 
         // If week is complete, record completion time for time-based unlock
-        if (isWeekComplete && allCorrect) {
+        if (isWeekComplete && passed) {
             // Check if next week exists and is locked
             const [nextWeekCheck] = await pool.execute(
                 `SELECT COUNT(*) as count FROM study_plan 
@@ -440,7 +448,7 @@ const submitStepQuiz = async (req, res) => {
         // Check if next step exists for navigation
         let nextStepExists = false;
         const nextStepId = stepId + 1;
-        if (allCorrect && !isWeekComplete) {
+        if (passed && !isWeekComplete) {
             const [nextStepCheck] = await pool.execute(
                 `SELECT COUNT(*) as count FROM study_plan 
                  WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
@@ -449,21 +457,72 @@ const submitStepQuiz = async (req, res) => {
             nextStepExists = nextStepCheck[0].count > 0;
         }
 
+        // Call RL API to get personalized action (only if passed)
+        let rlRecommendation = null;
+        if (passed) {
+            try {
+                const rlResponse = await RLService.getRecommendation(studentId);
+
+                if (rlResponse.success && rlResponse.recommendation) {
+                    const actionCode = rlResponse.recommendation.action_code;
+
+                    // Handle BADGE_INJECTION
+                    if (actionCode === 'BADGE_INJECTION') {
+                        const badge = await RLService.selectRandomBadge(studentId);
+                        if (badge) {
+                            rlRecommendation = {
+                                action_code: 'BADGE_INJECTION',
+                                badge: {
+                                    badge_ID: badge.badge_ID,
+                                    name: badge.name,
+                                    description: badge.description,
+                                    icon_url: badge.icon_url
+                                }
+                            };
+                        }
+                    }
+                    // Handle RANK_COMPARISON
+                    else if (actionCode === 'RANK_COMPARISON') {
+                        const rankInfo = await RLService.calculateStudentRank(studentId);
+                        rlRecommendation = {
+                            action_code: 'RANK_COMPARISON',
+                            rank_percentile: rankInfo.percentile,
+                            rank_text: rankInfo.rank_text
+                        };
+                    }
+                    // Other actions (MULTIPLIER_BOOST, EXTRA_GOALS, STANDARD_XP)
+                    else {
+                        rlRecommendation = {
+                            action_code: actionCode,
+                            action_name: rlResponse.recommendation.action_name,
+                            description: rlResponse.recommendation.description
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('❌ RL trigger error:', error);
+                // Don't fail quiz submission if RL fails
+            }
+        } else {
+            console.log('⚠️ Skipping RL: Quiz not passed');
+        }
+
         res.json({
             success: true,
-            passed: allCorrect,
+            passed: passed,
             score: score,
-            totalQuestions: answers.length,
+            totalQuestions: totalQuestions,
             attemptNumber: currentAttempt,
-            xpEarned: allCorrect ? 50 + (answers.length * 10) : 0,
-            isWeekComplete: isWeekComplete && allCorrect,
-            nextStepId: nextStepExists ? nextStepId : null, // Include next step for navigation
-            weekNumber: weekNumber, // Include for frontend navigation
-            message: allCorrect
+            xpEarned: passed ? 50 + (score * 10) : 0,
+            isWeekComplete: isWeekComplete && passed,
+            nextStepId: nextStepExists ? nextStepId : null,
+            weekNumber: weekNumber,
+            rlRecommendation: rlRecommendation, // NEW: Include RL action
+            message: passed
                 ? (isWeekComplete
                     ? 'Congratulations! You completed this week! Return to dashboard to continue.'
                     : 'Congratulations! You passed. Next step unlocked!')
-                : 'Some answers were incorrect. Please try again.'
+                : 'You need 60% to pass. Please try again.'
         });
 
     } catch (error) {
