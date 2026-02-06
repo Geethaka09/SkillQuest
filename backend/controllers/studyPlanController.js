@@ -344,17 +344,15 @@ const submitStepQuiz = async (req, res) => {
         let allCorrect = true;
         let score = 0;
 
-        // === SYNCHRONIZED TIMESTAMPS ===
-        // Generate SINGLE finishTime at the start - used for ALL rows
+        // Generate synchronized timestamps for all attempts
         const finishTime = new Date();
         const finishedAt = finishTime.toISOString().slice(0, 19).replace('T', ' ');
 
-        // Use startTime from frontend (when quiz loaded), or fallback to finishTime if not provided
         let attemptedAt;
         if (startTime) {
             attemptedAt = new Date(startTime).toISOString().slice(0, 19).replace('T', ' ');
         } else {
-            attemptedAt = finishedAt; // Fallback: same as finish time
+            attemptedAt = finishedAt;
         }
 
         // Process each answer and insert into quiz_attempts
@@ -383,12 +381,10 @@ const submitStepQuiz = async (req, res) => {
             [currentAttempt, studentId, weekNumber, stepId]
         );
 
-        // Calculate Passed Status (>= 60%)
-        // FIXED: Use questions.length (DB source of truth) not answers.length (client payload)
+        // Calculate Passed Status (>= 60%) using DB question count
         const totalQuestions = questions.length;
         const percentage = totalQuestions > 0 ? (score / totalQuestions) : 0;
         const passed = percentage >= 0.6;
-        // allCorrect is already set in the loop
 
         if (passed) {
             // Mark current step as COMPLETED with both timestamps
@@ -516,7 +512,7 @@ const submitStepQuiz = async (req, res) => {
             isWeekComplete: isWeekComplete && passed,
             nextStepId: nextStepExists ? nextStepId : null,
             weekNumber: weekNumber,
-            rlRecommendation: rlRecommendation, // NEW: Include RL action
+            rlRecommendation: rlRecommendation,
             message: passed
                 ? (isWeekComplete
                     ? 'Congratulations! You completed this week! Return to dashboard to continue.'

@@ -126,7 +126,7 @@ const DashboardPage = () => {
                     }
                 }
 
-                // 2. Check for cached general RL state (Rank, Goals, etc.)
+                // Load cached RL state
                 const cachedState = localStorage.getItem('cachedRLState');
                 if (cachedState) {
                     const rec = JSON.parse(cachedState);
@@ -143,7 +143,7 @@ const DashboardPage = () => {
         loadRLState();
     }, []);
 
-    // Robust Goal Injection: Ensure bonus goal exists even after API fetch updates
+    // Inject bonus goal if missing (handles race condition)
     useEffect(() => {
         if (rlRecommendation?.action_code === 'EXTRA_GOALS' && goalsData?.goals) {
             const hasBonus = goalsData.goals.some(g => g.id === 99);

@@ -159,11 +159,6 @@ class RLService {
                 timeout: 30000 // Increased to 30s for Azure cold start
             });
 
-            // Return the API response directly
-
-
-
-
             return response.data;
         } catch (error) {
             console.error('RL API Error:', error.message);
