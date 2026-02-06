@@ -16,6 +16,7 @@ const AnalyticsPage = () => {
         { day: 'Sat', hours: 0 },
         { day: 'Sun', hours: 0 },
     ]);
+    const [xpData, setXpData] = useState([]); // New XP Data
     const [summary, setSummary] = useState({
         weeklyTotal: 0,
         averageDaily: 0,
@@ -27,10 +28,17 @@ const AnalyticsPage = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await analyticsService.getWeeklyEngagement(timeRange);
-                if (response.success) {
-                    setChartData(response.data.chartData);
-                    setSummary(response.data.summary);
+                const [engagementRes, xpRes] = await Promise.all([
+                    analyticsService.getWeeklyEngagement(timeRange),
+                    analyticsService.getXPVelocity(timeRange)
+                ]);
+
+                if (engagementRes.success) {
+                    setChartData(engagementRes.data.chartData);
+                    setSummary(engagementRes.data.summary);
+                }
+                if (xpRes.success) {
+                    setXpData(xpRes.data);
                 }
             } catch (error) {
                 console.error('Failed to fetch analytics:', error);
@@ -44,6 +52,7 @@ const AnalyticsPage = () => {
 
     // Calculate max hours for chart scaling (minimum 8, or highest value)
     const maxHours = Math.max(8, ...chartData.map(d => d.hours));
+    const maxXP = Math.max(100, ...xpData.map(d => d.xp || 0)); // Scale for XP
     const chartHeight = 200;
     const chartWidth = 700;
     const padding = 40;
@@ -78,9 +87,14 @@ const AnalyticsPage = () => {
         doc.setFillColor(248, 250, 252);
         doc.roundedRect(20, 60, 170, 30, 3, 3, 'F');
 
+        const totalXP = xpData.reduce((sum, d) => sum + (d.xp || 0), 0);
+
         doc.text(`Weekly Total: ${summary.weeklyTotal} hours`, 30, 72);
         doc.text(`Daily Average: ${summary.averageDaily} hours`, 90, 72);
-        doc.text(`Peak Day: ${summary.peakDay}`, 150, 72);
+        doc.text(`XP Earned: ${totalXP}`, 150, 72);
+
+        doc.text(`Peak Day: ${summary.peakDay}`, 30, 82);
+
 
         // Detailed Breakdown
         doc.setFontSize(16);
@@ -93,7 +107,8 @@ const AnalyticsPage = () => {
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.text('Day', 30, 116);
-        doc.text('Hours Spent', 150, 116);
+        doc.text('Hours Spent', 90, 116);
+        doc.text('XP Earned', 150, 116);
 
         // Table content
         doc.setFont(undefined, 'normal');
@@ -106,8 +121,11 @@ const AnalyticsPage = () => {
                 doc.rect(20, yPos - 6, 170, 10, 'F');
             }
 
+            const xpAmount = xpData[index]?.xp || 0;
+
             doc.text(`${dayData.day}`, 30, yPos);
-            doc.text(`${dayData.hours} hours`, 150, yPos);
+            doc.text(`${dayData.hours} hours`, 90, yPos);
+            doc.text(`${xpAmount} pts`, 150, yPos);
             yPos += 10;
         });
 
@@ -264,6 +282,76 @@ const AnalyticsPage = () => {
                             Hours Spent
                         </span>
                     </div>
+                </div>
+
+                {/* XP Velocity Chart (Bar Chart) */}
+                <div className="chart-card">
+                    <h3>XP Velocity (Points Earned)</h3>
+                    {loading ? (
+                        <div className="chart-loading">Loading chart data...</div>
+                    ) : (
+                        <div className="chart-container">
+                            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="xp-chart">
+                                {/* Grid lines (3 steps) */}
+                                {[0, 0.5, 1].map((ratio) => {
+                                    const y = chartHeight - padding - (ratio * (chartHeight - padding * 2));
+                                    return (
+                                        <g key={ratio}>
+                                            <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" />
+                                            <text x={padding - 10} y={y + 4} textAnchor="end" className="axis-label">
+                                                {Math.round(maxXP * ratio)}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Bars */}
+                                {xpData.map((d, i) => {
+                                    // Calculate x position based on uniform distribution
+                                    const x = padding + (i * (chartWidth - padding * 2)) / (xpData.length - 1 || 1);
+                                    // Calculate bar height
+                                    const barHeight = (d.xp / maxXP) * (chartHeight - padding * 2);
+                                    const y = chartHeight - padding - barHeight;
+
+                                    // Only render if xp > 0
+                                    if (d.xp <= 0) return null;
+
+                                    return (
+                                        <g key={i}>
+                                            <rect
+                                                x={x - 10} // Center bars
+                                                y={y}
+                                                width="20"
+                                                height={barHeight}
+                                                fill="#f59e0b" // Amber/Gold color
+                                                rx="4"
+                                            />
+                                            {/* XP Label on top of bar */}
+                                            <text x={x} y={y - 8} textAnchor="middle" fontSize="10" fill="#78350f" fontWeight="bold">
+                                                {d.xp}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* X-Axis Labels */}
+                                {xpData.map((d, i) => {
+                                    const x = padding + (i * (chartWidth - padding * 2)) / (xpData.length - 1 || 1);
+                                    return (
+                                        <text
+                                            key={i}
+                                            x={x}
+                                            y={chartHeight - 10}
+                                            textAnchor="middle"
+                                            className="day-label"
+                                        >
+                                            {d.day}
+                                        </text>
+                                    );
+                                })}
+                            </svg>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stats Cards */}

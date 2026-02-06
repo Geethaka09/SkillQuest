@@ -185,6 +185,11 @@ export const analyticsService = {
     getWeeklyEngagement: async (range = '7days') => {
         const response = await api.get(`/analytics/weekly-engagement?range=${range}`);
         return response.data;
+    },
+
+    getXPVelocity: async (range = '7days') => {
+        const response = await api.get(`/analytics/xp-velocity?range=${range}`);
+        return response.data;
     }
 };
 
