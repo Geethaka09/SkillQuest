@@ -188,4 +188,22 @@ export const analyticsService = {
     }
 };
 
+// RL (Reinforcement Learning) services
+export const rlService = {
+    getRecommendation: async () => {
+        const response = await api.get('/rl/recommend');
+        return response.data;
+    },
+
+    getMetrics: async () => {
+        const response = await api.get('/rl/metrics');
+        return response.data;
+    },
+
+    sendFeedback: async (userReturned) => {
+        const response = await api.post('/rl/feedback', { userReturned });
+        return response.data;
+    }
+};
+
 export default api;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CountUpAnimation from '../components/CountUpAnimation';
-import { authService, gamificationService, studyPlanService } from '../services/api';
+import { authService, gamificationService, studyPlanService, rlService } from '../services/api';
 import '../styles/dashboard.css';
 
 const DashboardPage = () => {
@@ -42,6 +42,10 @@ const DashboardPage = () => {
         ],
         completedGoals: 0
     });
+
+    // RL Recommendation state
+    const [rlRecommendation, setRlRecommendation] = useState(null);
+    const [rlLoading, setRlLoading] = useState(true);
 
     // Fetch gamification data on mount
     useEffect(() => {
@@ -99,6 +103,43 @@ const DashboardPage = () => {
         fetchGoalsData();
     }, []);
 
+    // Fetch RL recommendation
+    useEffect(() => {
+        const fetchRlRecommendation = async () => {
+            try {
+                const response = await rlService.getRecommendation();
+                if (response.success) {
+                    const rec = response.recommendation;
+                    setRlRecommendation(rec);
+
+                    // Handle EXTRA_GOALS immediately
+                    if (rec?.action_code === 'EXTRA_GOALS') {
+                        setGoalsData(prev => ({
+                            ...prev,
+                            goals: [
+                                {
+                                    id: 99,
+                                    text: '✨ Bonus Goal: Log in tomorrow',
+                                    progress: null,
+                                    xp: '+50 XP',
+                                    completed: false,
+                                    isBonus: true
+                                },
+                                ...prev.goals
+                            ]
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch RL recommendation:', error);
+            } finally {
+                setRlLoading(false);
+            }
+        };
+
+        fetchRlRecommendation();
+    }, []);
+
     // Calculate total steps for modules card
     const totalSteps = progressData.modules.reduce((acc, m) => acc + m.totalSteps, 0);
     const completedSteps = progressData.modules.reduce((acc, m) => acc + m.completedSteps, 0);
@@ -106,6 +147,18 @@ const DashboardPage = () => {
     return (
         <Layout>
             <div className="dashboard">
+                {/* RL: Multiplier Boost Banner */}
+                {rlRecommendation?.action_code === 'MULTIPLIER_BOOST' && (
+                    <div className="rl-banner multiplier-banner">
+                        <span className="banner-icon">🔥</span>
+                        <div className="banner-content">
+                            <h4>2x XP Boost Active!</h4>
+                            <p>Complete a lesson in the next 20m to earn double points.</p>
+                        </div>
+                        <div className="banner-timer">20:00</div>
+                    </div>
+                )}
+
                 {/* Welcome Header */}
                 <div className="welcome-header">
                     <div className="welcome-avatar">
@@ -162,7 +215,11 @@ const DashboardPage = () => {
                             </div>
                         </div>
                         <p className="level-label" style={{ color: error ? '#ef4444' : undefined, fontSize: error ? '0.8rem' : undefined }}>
-                            {error ? `⚠️ ${error}` : xpData.levelTitle}
+                            {error ? `⚠️ ${error}` :
+                                rlRecommendation?.action_code === 'RANK_COMPARISON'
+                                    ? <span className="rank-boost">🏆 Top 15% this week!</span>
+                                    : xpData.levelTitle
+                            }
                         </p>
                         <div className="xp-display">
                             <div className="mastery-points">
@@ -365,6 +422,19 @@ const DashboardPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* RL: Badge Injection Modal */}
+            {rlRecommendation?.action_code === 'BADGE_INJECTION' && (
+                <div className="modal-overlay" onClick={() => setRlRecommendation(null)}>
+                    <div className="badge-modal" onClick={e => e.stopPropagation()}>
+                        <div className="badge-shine"></div>
+                        <span className="badge-emoji">🏅</span>
+                        <h2>Surprise Reward!</h2>
+                        <p>You've been awarded the <strong>Dedication Badge</strong> for your consistent effort.</p>
+                        <button className="claim-btn" onClick={() => setRlRecommendation(null)}>Awesomesauce!</button>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 };

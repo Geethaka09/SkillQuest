@@ -289,9 +289,9 @@ const getStepContent = async (req, res) => {
 const submitStepQuiz = async (req, res) => {
     try {
         const studentId = req.user.id;
-        console.log('Quiz submission payload:', req.body); // Debug log
-
         const { planId, weekNumber, stepId, startTime, answers } = req.body;
+        console.log('Quiz submission payload:', req.body); // Debug log
+        console.log('Using FIXED controller with start_date column'); // PROOF OF UPDATE CHECK
         // answers = [{ genQID, response }]
         // startTime = ISO timestamp from frontend when quiz started
 
@@ -389,7 +389,7 @@ const submitStepQuiz = async (req, res) => {
             await pool.execute(
                 `UPDATE study_plan 
                  SET step_status = 'COMPLETED', 
-                     started_at = ?, 
+                     start_date = ?, 
                      completed_at = NOW() 
                  WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
                 [attemptedAt, studentId, weekNumber, stepId]

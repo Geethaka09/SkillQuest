@@ -7,6 +7,7 @@ const quizRoutes = require('./routes/quiz');
 const gamificationRoutes = require('./routes/gamification');
 const studyPlanRoutes = require('./routes/studyPlan');
 const analyticsRoutes = require('./routes/analytics');
+const rlRoutes = require('./routes/rl');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/study-plan', studyPlanRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/rl', rlRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
