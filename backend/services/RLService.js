@@ -154,16 +154,14 @@ class RLService {
             const metrics = await this.getStudentMetrics(studentId);
 
             // Call RL API
+            console.log('✅ USING UPDATED RLService.js with 30s timeout'); // PROOF OF UPDATE
             const response = await axios.post(`${RL_API_URL}/predict`, metrics, {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 5000
+                timeout: 30000 // Increased to 30s for Azure cold start
             });
 
-            return {
-                success: true,
-                metrics,
-                recommendation: response.data
-            };
+            // Return the API response directly (it already has success, recommendation, etc.)
+            return response.data;
         } catch (error) {
             console.error('RL API Error:', error.message);
             return {

@@ -108,8 +108,11 @@ const DashboardPage = () => {
         const fetchRlRecommendation = async () => {
             try {
                 const response = await rlService.getRecommendation();
+                console.log('🔮 RL CLIENT RESPONSE:', response); // DEBUG LOG
+
                 if (response.success) {
                     const rec = response.recommendation;
+                    console.log('🔮 Action Code:', rec?.action_code); // DEBUG LOG
                     setRlRecommendation(rec);
 
                     // Handle EXTRA_GOALS immediately
@@ -140,9 +143,30 @@ const DashboardPage = () => {
         fetchRlRecommendation();
     }, []);
 
+    // Timer state for Multiplier Boost
+    const [timeLeft, setTimeLeft] = useState(1200); // 20 minutes = 1200 seconds
+
     // Calculate total steps for modules card
     const totalSteps = progressData.modules.reduce((acc, m) => acc + m.totalSteps, 0);
     const completedSteps = progressData.modules.reduce((acc, m) => acc + m.completedSteps, 0);
+
+    // Timer Logic
+    useEffect(() => {
+        let interval;
+        if (rlRecommendation?.action_code === 'MULTIPLIER_BOOST' && timeLeft > 0) {
+            interval = setInterval(() => {
+                setTimeLeft((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [rlRecommendation, timeLeft]);
+
+    // Format time as MM:SS
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
 
     return (
         <Layout>
@@ -153,9 +177,9 @@ const DashboardPage = () => {
                         <span className="banner-icon">🔥</span>
                         <div className="banner-content">
                             <h4>2x XP Boost Active!</h4>
-                            <p>Complete a lesson in the next 20m to earn double points.</p>
+                            <p>Complete a lesson in the next {Math.ceil(timeLeft / 60)}m to earn double points.</p>
                         </div>
-                        <div className="banner-timer">20:00</div>
+                        <div className="banner-timer">{formatTime(timeLeft)}</div>
                     </div>
                 )}
 
@@ -435,6 +459,74 @@ const DashboardPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* DEBUG: Cycle RL Actions (Hidden, bottom right) */}
+            <div
+                style={{
+                    position: 'fixed',
+                    bottom: '10px',
+                    right: '10px',
+                    opacity: 0.1,
+                    transition: 'opacity 0.3s',
+                    zIndex: 9999
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0.1}
+            >
+                <button
+                    onClick={() => {
+                        const actions = ['MULTIPLIER_BOOST', 'BADGE_INJECTION', 'RANK_COMPARISON', 'EXTRA_GOALS', 'STANDARD_XP'];
+                        const currentIdx = actions.indexOf(rlRecommendation?.action_code);
+                        const nextIdx = (currentIdx + 1) % actions.length;
+                        const nextAction = actions[nextIdx];
+
+                        console.log('🔄 Manually switching to:', nextAction);
+                        setRlRecommendation({
+                            action_code: nextAction,
+                            action_name: 'Manual Override',
+                            description: 'Debug Mode'
+                        });
+
+                        // Reset timer if switching to boost
+                        if (nextAction === 'MULTIPLIER_BOOST') setTimeLeft(1200);
+
+                        // Add bonus goal if switching to EXTRA_GOALS
+                        if (nextAction === 'EXTRA_GOALS') {
+                            setGoalsData(prev => ({
+                                ...prev,
+                                goals: [
+                                    {
+                                        id: 99,
+                                        text: '✨ Bonus Goal: Log in tomorrow',
+                                        progress: null,
+                                        xp: '+50 XP',
+                                        completed: false,
+                                        isBonus: true
+                                    },
+                                    ...prev.goals.filter(g => g.id !== 99) // Remove if already exists
+                                ]
+                            }));
+                        } else {
+                            // Remove bonus goal when switching away from EXTRA_GOALS
+                            setGoalsData(prev => ({
+                                ...prev,
+                                goals: prev.goals.filter(g => g.id !== 99)
+                            }));
+                        }
+                    }}
+                    style={{
+                        padding: '8px 12px',
+                        background: '#333',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                    }}
+                >
+                    🔧 cycle rl action
+                </button>
+            </div>
         </Layout>
     );
 };
