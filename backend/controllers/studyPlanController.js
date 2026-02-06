@@ -430,7 +430,6 @@ const submitStepQuiz = async (req, res) => {
             [studentId, weekNumber]
         );
 
-        console.log('Week completion check:', weekSteps[0]); // Debug log
         const isWeekComplete = weekSteps[0].total > 0 && weekSteps[0].completed === weekSteps[0].total;
 
         // If week is complete, record completion time for time-based unlock
