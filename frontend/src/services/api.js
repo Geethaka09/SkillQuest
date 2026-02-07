@@ -169,8 +169,11 @@ export const studyPlanService = {
         return response.data;
     },
 
-    getStepContent: async (weekNumber, stepId) => {
-        const response = await api.get(`/study-plan/step/${weekNumber}/${stepId}`);
+    getStepContent: async (weekNumber, stepId, recId = null) => {
+        const url = recId
+            ? `/study-plan/step/${weekNumber}/${stepId}?recId=${recId}`
+            : `/study-plan/step/${weekNumber}/${stepId}`;
+        const response = await api.get(url);
         return response.data;
     },
 

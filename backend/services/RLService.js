@@ -181,7 +181,7 @@ class RLService {
      * @param {boolean} userReturned - Whether user came back
      * @returns {Promise<Object>} Feedback response
      */
-    static async sendFeedback(studentId, userReturned) {
+    static async sendFeedback(studentId, userReturned, recommendationId = null) {
         try {
             const newUserData = userReturned
                 ? await this.getStudentMetrics(studentId)
@@ -189,7 +189,8 @@ class RLService {
 
             const response = await axios.post(`${RL_API_URL}/feedback`, {
                 user_id: studentId,
-                user_returned: userReturned,
+                user_returned: userReturned ? 1 : 0, // Ensure integer for compatibility
+                recommendation_id: recommendationId, // Required by API
                 new_user_data: newUserData
             }, {
                 headers: { 'Content-Type': 'application/json' },

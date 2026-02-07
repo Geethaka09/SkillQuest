@@ -32,7 +32,20 @@ const StepQuizPage = () => {
             setLoading(true);
             // Capture start time when quiz loads
             setQuizStartTime(new Date().toISOString());
-            const response = await studyPlanService.getStepContent(weekNumber, stepId);
+
+            // Get recommendation ID from cache if available
+            let recId = null;
+            try {
+                const cachedState = localStorage.getItem('cachedRLState');
+                if (cachedState) {
+                    const rec = JSON.parse(cachedState);
+                    recId = rec.recommendation_id || null;
+                }
+            } catch (e) {
+                console.warn('Failed to parse cached RL state', e);
+            }
+
+            const response = await studyPlanService.getStepContent(weekNumber, stepId, recId);
             if (response.success) {
                 setStepData(response);
             } else {

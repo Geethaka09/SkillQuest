@@ -226,6 +226,7 @@ const getStepContent = async (req, res) => {
         const studentId = req.user.id;
         const weekNumber = parseInt(req.params.weekNumber);
         const stepId = parseInt(req.params.stepId);
+        const recommendationId = req.query.recId || null; // Optional: Get ID from query buffer
 
         // Get step data including questions
         const [rows] = await pool.execute(
@@ -276,9 +277,15 @@ const getStepContent = async (req, res) => {
         // Trigger RL Feedback (User Returned = true)
         // This endpoint acts as "Start Quiz" / "Engage with Step"
         // Fire-and-forget: we don't await this to avoid slowing down content load
-        RLService.sendFeedback(studentId, true)
-            .then(() => console.log(`✅ RL FEEDBACK SENT for student ${studentId}`))
-            .catch(err => console.error('⚠️ RL Feedback Error:', err.message));
+        if (recommendationId) {
+            RLService.sendFeedback(studentId, true, recommendationId)
+                .then(res => {
+                    if (res.success) console.log(`✅ RL FEEDBACK SENT for student ${studentId} (RecID: ${recommendationId})`);
+                })
+                .catch(err => console.error('⚠️ RL Feedback Error:', err.message));
+        } else {
+            console.log(`ℹ️ No active recommendation to feedback for student ${studentId}`);
+        }
 
     } catch (error) {
         console.error('Get step content error:', error);
