@@ -273,6 +273,12 @@ const getStepContent = async (req, res) => {
             questions: questions
         });
 
+        // Trigger RL Feedback (User Returned = true)
+        // This endpoint acts as "Start Quiz" / "Engage with Step"
+        // Fire-and-forget: we don't await this to avoid slowing down content load
+        RLService.sendFeedback(studentId, true)
+            .catch(err => console.error('⚠️ RL Feedback Error:', err.message));
+
     } catch (error) {
         console.error('Get step content error:', error);
         res.status(500).json({
