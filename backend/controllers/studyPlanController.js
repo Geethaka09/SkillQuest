@@ -277,6 +277,7 @@ const getStepContent = async (req, res) => {
         // This endpoint acts as "Start Quiz" / "Engage with Step"
         // Fire-and-forget: we don't await this to avoid slowing down content load
         RLService.sendFeedback(studentId, true)
+            .then(() => console.log(`✅ RL FEEDBACK SENT for student ${studentId}`))
             .catch(err => console.error('⚠️ RL Feedback Error:', err.message));
 
     } catch (error) {
