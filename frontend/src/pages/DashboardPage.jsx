@@ -131,6 +131,23 @@ const DashboardPage = () => {
                 if (cachedState) {
                     const rec = JSON.parse(cachedState);
                     console.log('📂 Loaded cached RL state:', rec.action_code);
+
+                    // Check expiration for Extra Goals (remove > 1 day after assignment)
+                    if (rec.action_code === 'EXTRA_GOALS' && rec.assignedAt) {
+                        const assignedDate = new Date(rec.assignedAt);
+                        const today = new Date();
+                        assignedDate.setHours(0, 0, 0, 0);
+                        today.setHours(0, 0, 0, 0);
+                        const diffTime = Math.abs(today - assignedDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        if (diffDays > 1) {
+                            console.log('🧹 Clearing expired Extra Goal (Day +2)');
+                            localStorage.removeItem('cachedRLState');
+                            return; // Stop loading
+                        }
+                    }
+
                     setRlRecommendation(rec);
                 }
             } catch (error) {
@@ -147,17 +164,43 @@ const DashboardPage = () => {
     useEffect(() => {
         if (rlRecommendation?.action_code === 'EXTRA_GOALS' && goalsData?.goals) {
             const hasBonus = goalsData.goals.some(g => g.id === 99);
+
+            // Check completion
+            const assignedAt = rlRecommendation.assignedAt || Date.now();
+            const assignedDate = new Date(assignedAt).toDateString();
+            const todayDate = new Date().toDateString();
+            const isCompleted = assignedDate !== todayDate;
+            const isClaimed = rlRecommendation.rewardClaimed;
+
+            if (isCompleted && !isClaimed) {
+                // Award XP and mark as claimed
+                console.log('🎉 Claiming Extra Goal Reward!');
+                gamificationService.addXP(50)
+                    .then(() => {
+                        // Update cache to prevent re-claiming
+                        const updatedRec = { ...rlRecommendation, rewardClaimed: true };
+                        setRlRecommendation(updatedRec);
+                        localStorage.setItem('cachedRLState', JSON.stringify(updatedRec));
+
+                        // Force refresh XP display
+                        gamificationService.getDashboardStats().then(res => {
+                            if (res.success) setXpData(res.data);
+                        });
+                    })
+                    .catch(err => console.error('Failed to claim reward:', err));
+            }
+
             if (!hasBonus) {
-                console.log('✨ Injecting Bonus Goal (Reactive)');
+                console.log('✨ Injecting Bonus Goal (Reactive)', { isCompleted });
                 setGoalsData(prev => ({
                     ...prev,
                     goals: [
                         {
                             id: 99,
-                            text: '✨ Bonus Goal: Log in tomorrow',
-                            progress: null,
+                            text: isCompleted ? '✨ Bonus Goal: Logged in today!' : '✨ Bonus Goal: Log in tomorrow',
+                            progress: isCompleted ? 'COMPLETED!' : null,
                             xp: '+50 XP',
-                            completed: false,
+                            completed: isCompleted,
                             isBonus: true
                         },
                         ...prev.goals

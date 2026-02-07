@@ -126,7 +126,12 @@ const StepQuizPage = () => {
                 // Cache persistent actions for Dashboard display (Rank, Goals)
                 // Exclude BADGE_INJECTION (one-time) and STANDARD_XP
                 if (['RANK_COMPARISON', 'EXTRA_GOALS'].includes(rec.action_code)) {
-                    localStorage.setItem('cachedRLState', JSON.stringify(rec));
+                    // Add timestamp to track when goal was assigned (for completion logic)
+                    const stateToCache = {
+                        ...rec,
+                        assignedAt: Date.now()
+                    };
+                    localStorage.setItem('cachedRLState', JSON.stringify(stateToCache));
                 } else if (rec.action_code !== 'MULTIPLIER_BOOST') {
                     // For Badges/Standard, clear previous cache so we don't show old state
                     localStorage.removeItem('cachedRLState');
