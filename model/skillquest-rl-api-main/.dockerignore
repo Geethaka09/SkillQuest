@@ -1,13 +1,30 @@
+# ==========================================
+# DOCKER IGNORE FILE
+# ==========================================
+# This file tells Docker which files/folders to EXCLUDE from the build context.
+# Excluding unnecessary files keeps the Docker image smaller and builds faster.
+
+# Python compiled bytecode (generated at runtime)
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
+
+# Virtual environments (local dev environments should not be copied)
 env/
 venv/
+
+# Environment variables (secrets should not be baked into the image)
 .env
+
+# Version control (Git metadata is large and unneeded)
 .git
 .gitignore
-*.md
+
+# IDE configurations (Developer tools)
 .vscode
 .idea
+
+# Documentation (Markdown files are not needed in production container)
+*.md

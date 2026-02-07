@@ -1,22 +1,29 @@
 const GamificationService = require('../services/GamificationService');
 
 /**
- * Get dashboard gamification stats
+ * Gamification Controller
+ * Handles user interactions with the gamification system (Dashboard, XP, Badges).
+ */
+
+/**
+ * Get Dashboard Gamification Stats
  * 
- * Flow:
- * 1. Update streak (silent background check-in)
- * 2. Fetch fresh user data with calculated payload
- * 3. Return dashboard payload to frontend
+ * This is the "Heartbeat" of the gamification system. 
+ * Expected to be called every time the user lands on the dashboard.
+ * 
+ * Workflow:
+ * 1. "Silent Check-in": Updates user streak internally (checks if they missed a day).
+ * 2. Fetches fresh payload: Level, XP, Progress Bar, Streak, and Badges.
+ * 3. Returns everything needed to render the gamification widgets.
  * 
  * @route GET /api/gamification/dashboard
- * @access Private
  */
 const getDashboardStats = async (req, res) => {
     try {
         const userId = req.user.id;
 
         // Step 1: Silent background streak check-in
-        // This updates the streak based on last activity date
+        // This ensures the streak is accurate even if they didn't do a quiz yet
         await GamificationService.updateStreak(userId);
 
         // Step 2 & 3: Get fresh dashboard payload with all calculated values
@@ -44,10 +51,13 @@ const getDashboardStats = async (req, res) => {
 };
 
 /**
- * Add XP to user (for use by other parts of the system)
+ * Add XP to User
+ * 
+ * Generic endpoint to award XP for arbitrary actions.
+ * - Used effectively for "Manual" rewards or external triggers.
+ * - Checks for Level Up: If XP crosses threshold, returns `leveledUp: true`.
  * 
  * @route POST /api/gamification/add-xp
- * @access Private
  */
 const addXP = async (req, res) => {
     try {
@@ -92,10 +102,10 @@ const addXP = async (req, res) => {
 };
 
 /**
- * Get daily goals progress
+ * Get Daily Goals
+ * Fetches the 3 daily tasks assigned to the user.
  * 
  * @route GET /api/gamification/daily-goals
- * @access Private
  */
 const getDailyGoals = async (req, res) => {
     try {
@@ -116,10 +126,10 @@ const getDailyGoals = async (req, res) => {
 };
 
 /**
- * Get user badges
+ * Get User Badges
+ * Returns list of earned badges for the Profile page.
  * 
  * @route GET /api/gamification/badges
- * @access Private
  */
 const getUserBadges = async (req, res) => {
     try {

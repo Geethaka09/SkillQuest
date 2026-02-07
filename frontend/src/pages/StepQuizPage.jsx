@@ -7,6 +7,17 @@ import RLToast from '../components/RLToast';
 // Import Dashboard CSS for badge styles if not present (might need to copy styles or import)
 import '../styles/dashboard.css'; // Reusing badge modal styles
 
+/**
+ * Step Quiz Page
+ * 
+ * Handles the assessment phase of a learning step.
+ * Key Logic:
+ * - Time Tracking: captures `startTime` for analytics.
+ * - RL Integration:
+ *   - Checks for cached RL actions (e.g., active boosts).
+ *   - Processes post-quiz RL rewards (Badges, Multipliers).
+ * - Feedback Loop: Submits answers to backend, which then feeds the RL model.
+ */
 const StepQuizPage = () => {
     const { weekNumber, stepId } = useParams();
     const navigate = useNavigate();
@@ -19,7 +30,7 @@ const StepQuizPage = () => {
     const [error, setError] = useState('');
     const [quizStartTime, setQuizStartTime] = useState(null); // Track when quiz started
 
-    // RL State
+    // RL State: Action received AFTER quiz submission
     const [rlAction, setRlAction] = useState(null);
     const [showBoostToast, setShowBoostToast] = useState(false);
 

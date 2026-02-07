@@ -3,6 +3,18 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 import '../styles/navbar.css';
 
+/**
+ * Navbar Component
+ * 
+ * The main navigation header for the application.
+ * 
+ * Features:
+ * - Responsive Design: Adapts to mobile/desktop (CSS).
+ * - Active State: Highlights the current page link.
+ * - User Dropdown: Quick access to Profile, Settings, and Logout.
+ * - Dynamic Avatar: potentially falls back to a default image.
+ * - Event Listening: Listens for 'userUpdated' events to refresh profile data instantly.
+ */
 const Navbar = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -11,6 +23,7 @@ const Navbar = () => {
     const [user, setUser] = useState(authService.getCurrentUser());
 
     // Listen for user updates (e.g. profile pic change)
+    // This allows disjointed parts of the app (like ProfileUpload) to update the Navbar avatar
     useEffect(() => {
         const handleUserUpdate = () => {
             setUser(authService.getCurrentUser());
@@ -20,6 +33,7 @@ const Navbar = () => {
     }, []);
 
     // Close dropdown when clicking outside
+    // Standard UI UX pattern
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

@@ -2,11 +2,21 @@ import { useState, useEffect } from 'react';
 import { authService } from '../services/api';
 import '../styles/profile.css';
 
+/**
+ * Change Email Modal
+ * 
+ * Allows users to update their email address.
+ * Includes validation:
+ * - Required check
+ * - Format check (Regex)
+ * - Difference check (New != Old)
+ */
 const ChangeEmailModal = ({ isOpen, onClose, currentEmail, onUpdateSuccess }) => {
     const [newEmail, setNewEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Reset state when modal opens
     useEffect(() => {
         if (isOpen) {
             setNewEmail('');

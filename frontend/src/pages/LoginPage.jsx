@@ -2,6 +2,17 @@ import { useState } from 'react';
 import { authService } from '../services/api';
 import '../styles/login.css';
 
+/**
+ * Login Page
+ * 
+ * Entry point for the application.
+ * Features:
+ * - Dual Mode: Toggles between Login and "Quick Sign-up" (though full registration is usually separate).
+ * - Adaptive Redirection:
+ *   - New Users (status 0) -> redirected to Initial Quiz (Placement Test).
+ *   - Returning Users (status 1) -> redirected to Dashboard.
+ * - Error Handling: Displays auth errors inline.
+ */
 const LoginPage = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +53,10 @@ const LoginPage = () => {
                 setSuccess('Login successful! Redirecting...');
                 console.log('Login successful:', response);
                 console.log('User status:', response.user.status, typeof response.user.status);
-                // Redirect based on user status (use == to handle string/number)
+
+                // Redirect Logic:
+                // Status 0: New student, needs placement test.
+                // Status 1: Active student, goes to dashboard.
                 setTimeout(() => {
                     if (response.user.status == 0) {
                         window.location.href = '/initial-quiz';
@@ -51,6 +65,7 @@ const LoginPage = () => {
                     }
                 }, 1500);
             } else {
+                // Quick registration flow (Optional usage, typically RegisterPage is preferred)
                 const response = await authService.register(
                     formData.email,
                     formData.password,

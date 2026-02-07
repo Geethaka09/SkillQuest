@@ -4,6 +4,16 @@ import Layout from '../components/Layout';
 import { analyticsService } from '../services/api';
 import '../styles/analytics.css';
 
+/**
+ * Analytics Page
+ * 
+ * Visualizes student performance data.
+ * Features:
+ * - Interactive Charts: SVG-based line and bar charts for Weekly Engagement and XP Velocity.
+ * - Dynamic Time Ranges: Toggle between 7-day and 14-day views.
+ * - PDF Export: Generates a downloadable report using `jspdf`.
+ * - Summary Stats: Highlights averages, totals, and peak performance days.
+ */
 const AnalyticsPage = () => {
     const [timeRange, setTimeRange] = useState('7days');
     const [loading, setLoading] = useState(true);

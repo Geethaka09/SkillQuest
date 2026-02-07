@@ -2,7 +2,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 
-// Login student
+/**
+ * Auth Controller
+ * Handles student registration, login, and account management.
+ */
+
+/**
+ * Login Student
+ * 
+ * 1. Validates email/password presence.
+ * 2. Fetches user by email.
+ * 3. Compares password (supports both plain text for legacy users and bcrypt hash).
+ * 4. Updates `last_login` timestamp.
+ * 5. Issues JWT token.
+ */
 const login = async (req, res) => {
     try {
         const { email, password, rememberMe } = req.body;
@@ -29,15 +42,13 @@ const login = async (req, res) => {
 
         const student = rows[0];
 
-        // Check password - first try direct comparison (for plain text passwords)
+        // Check password - first try direct comparison (for legacy plain text passwords)
         // then try bcrypt comparison (for hashed passwords)
         let isMatch = false;
 
-        // First check if password matches directly (plain text)
         if (password === student.password) {
             isMatch = true;
         } else {
-            // Try bcrypt comparison (for hashed passwords)
             try {
                 isMatch = await bcrypt.compare(password, student.password);
             } catch (e) {
@@ -89,7 +100,16 @@ const login = async (req, res) => {
     }
 };
 
-// Register new student
+/**
+ * Register New Student
+ * 
+ * 1. Validates input fields.
+ * 2. Checks for existing email/username.
+ * 3. Auto-generates unique Student ID (S0001, S0002...).
+ * 4. Hashes password.
+ * 5. Creates student record with default values (Level: Beginner, Status: 0).
+ * 6. Returns JWT token for immediate login.
+ */
 const register = async (req, res) => {
     try {
         const { email, password, firstName, lastName, userName } = req.body;

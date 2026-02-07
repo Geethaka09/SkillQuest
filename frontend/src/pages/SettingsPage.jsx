@@ -7,6 +7,15 @@ import ChangeEmailModal from '../components/ChangeEmailModal';
 import DeleteAccountModal from '../components/DeleteAccountModal';
 import '../styles/settings.css';
 
+/**
+ * Settings Page
+ * 
+ * Central hub for account security and management.
+ * Features:
+ * - Nested Navigation: Uses local state (`activeView`) to switch between Main Menu and sub-screens (e.g., Change Password).
+ * - Modal Integration: Handles Email Change and Account Deletion via separate modal components.
+ * - Reactive Updates: Listens for `userUpdated` events globally if needed, though mostly pushes updates up.
+ */
 const SettingsPage = () => {
     const navigate = useNavigate();
     const [activeView, setActiveView] = useState('main'); // 'main' or 'change-password'

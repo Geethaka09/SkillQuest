@@ -1,6 +1,11 @@
-flask
-flask-cors
-torch
-numpy
-scikit-learn
-gunicorn
+# ==========================================
+# SKILLQUEST RL API - DEPENDENCIES
+# ==========================================
+# Install with: pip install -r requirements.txt
+
+flask          # Web framework for API endpoints
+flask-cors     # Cross-Origin Resource Sharing for frontend
+torch          # PyTorch for Deep Q-Network (Neural Network)
+numpy          # Numerical operations for state vectors
+scikit-learn   # Logistic Regression for Risk Model
+gunicorn       # Production WSGI server (for Docker)

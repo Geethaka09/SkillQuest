@@ -4,6 +4,17 @@ import { authService, quizService } from '../services/api';
 import Layout from '../components/Layout';
 import '../styles/initialQuiz.css';
 
+/**
+ * Initial Quiz Page (Placement Test)
+ * 
+ * The first meaningful interaction for a new user.
+ * Purpose: Assets specific knowledge gaps to tailor the generated study plan.
+ * Flow:
+ * 1. Fetch questions from backend.
+ * 2. Collect user answers.
+ * 3. Submit full payload to `quizService`.
+ * 4. Update user status locally (so they don't get redirected back here) and display results.
+ */
 const InitialQuizPage = () => {
     const navigate = useNavigate();
     const [questions, setQuestions] = useState([]);

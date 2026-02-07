@@ -1,6 +1,14 @@
 import React from 'react';
 import './RLToast.css';
 
+/**
+ * RL Toast Notification
+ * 
+ * A specialized toast notification for RL-triggered events (e.g., XP Boosts).
+ * Currently hardcoded for the "2x XP Boost" scenario.
+ * 
+ * Future Improvement: Make content dynamic via props.
+ */
 const RLToast = ({ show, onClose }) => {
     if (!show) return null;
 

@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import '../styles/profile.css';
 
+/**
+ * Delete Account Modal
+ * 
+ * Dangerous action confirmation.
+ * Requires user to type "DELETE" exactly to enable the confirm button.
+ * This is a standard pattern to prevent accidental data loss.
+ */
 const DeleteAccountModal = ({ isOpen, onClose, onConfirmDelete }) => {
     const [confirmText, setConfirmText] = useState('');
     const [loading, setLoading] = useState(false);

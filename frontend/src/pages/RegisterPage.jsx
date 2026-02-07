@@ -3,6 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import '../styles/register.css';
 
+/**
+ * Register Page
+ * 
+ * Full account creation flow.
+ * - Captures: Name, Email, Username, Password.
+ * - Validation: Checks password match and length.
+ * - Success: Redirects to Login page.
+ */
 const RegisterPage = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);

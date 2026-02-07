@@ -5,11 +5,25 @@ import CountUpAnimation from '../components/CountUpAnimation';
 import { authService, gamificationService, studyPlanService, rlService } from '../services/api';
 import '../styles/dashboard.css';
 
+/**
+ * Dashboard Page
+ * 
+ * The central hub for the student.
+ * Aggregates data from multiple services:
+ * - Gamification: XP, Level, Streak, Daily Goals.
+ * - Study Plan: Progress through modules/weeks.
+ * - RL: Personalized recommendations (Boosts, Badges, Bonus Goals).
+ * 
+ * Key Features:
+ * - Dynamic RL State: Checks for active boosts or special goals injected by the RL engine.
+ * - Real-time Timers: For expiring boosts (e.g., "2x XP for 20 mins").
+ * - Progress Visualization: Charts and bars for level and module completion.
+ */
 const DashboardPage = () => {
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
 
-    // Gamification state
+    // Gamification state: XP, Level, Streak
     const [xpData, setXpData] = useState({
         levelTitle: 'LOADING...',
         currentLevel: 0,
@@ -23,7 +37,7 @@ const DashboardPage = () => {
     const [error, setError] = useState(null);
     const [previousXP, setPreviousXP] = useState(0);
 
-    // Study Plan Progress state
+    // Study Plan Progress state: Modules completed, current week
     const [progressData, setProgressData] = useState({
         totalModules: 0,
         completedModules: 0,
@@ -43,7 +57,7 @@ const DashboardPage = () => {
         completedGoals: 0
     });
 
-    // RL Recommendation state
+    // RL Recommendation state: Stores the current action (e.g., 'MULTIPLIER_BOOST')
     const [rlRecommendation, setRlRecommendation] = useState(null);
     const [rlLoading, setRlLoading] = useState(true);
 

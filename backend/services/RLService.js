@@ -1,6 +1,11 @@
 /**
  * RL (Reinforcement Learning) Service
- * Handles communication with the RL API for gamification recommendations
+ * 
+ * Bridges the Node.js backend with the Python RL API.
+ * Responsibilities:
+ * 1. Data Aggregation: Collects 10+ metrics from SQL to build the Student State Vector.
+ * 2. Prediction: Sends state to RL Agent -> Gets optimized Action (e.g., "Badge Injection").
+ * 3. Feedback Loop: Reports back whether the student engagd with the action to train the model.
  */
 const axios = require('axios');
 const pool = require('../config/database');
@@ -10,12 +15,19 @@ const RL_API_URL = process.env.RL_API_URL || 'http://localhost:5001';
 
 class RLService {
     /**
-     * Get all parameters needed for RL API from database
-     * @param {string} studentId - Student ID
-     * @returns {Promise<Object>} Parameters for RL API
+     * Aggregates all necessary student metrics into a single payload for the RL Agent.
+     * 
+     * The RL Agent needs a "State Vector" representing the student's current context.
+     * This method runs multiple parallel queries to fetch:
+     * - Engagement (Active minutes, session duration)
+     * - Performance (Quiz accuracy, recent points)
+     * - consistency (Days since login, consecutive completions)
+     * 
+     * @param {string} studentId - The student's unique ID.
+     * @returns {Promise<Object>} A JSON object matching the RL API's expected input schema.
      */
     static async getStudentMetrics(studentId) {
-        // 1. Get student basic info
+        // 1. Get student basic info (Level, XP)
         const [studentRows] = await pool.execute(
             `SELECT student_ID, level, total_xp, last_login 
              FROM student WHERE student_ID = ?`,
@@ -28,7 +40,8 @@ class RLService {
 
         const student = studentRows[0];
 
-        // 2. Active minutes (time since last login)
+        // 2. Active minutes (Time elapsed since last login timestamp)
+        // Proxy for "Current Session Length" if they are active, or "Time since last seen"
         const [activeMinutesRows] = await pool.execute(
             `SELECT TIMESTAMPDIFF(MINUTE, last_login, NOW()) as active_minutes 
              FROM student WHERE student_ID = ?`,
@@ -36,7 +49,8 @@ class RLService {
         );
         const activeMinutes = activeMinutesRows[0]?.active_minutes || 0;
 
-        // 3. Quiz accuracy (grouped by attempt)
+        // 3. Quiz Accuracy (Average score across all attempts)
+        // Good indicator of skill mastery vs struggle
         const [accuracyRows] = await pool.execute(
             `SELECT AVG(sub.accuracy) as quiz_accuracy FROM (
                 SELECT week_number, step_ID, attempt_number, 
@@ -48,7 +62,8 @@ class RLService {
         );
         const quizAccuracy = accuracyRows[0]?.quiz_accuracy || 0;
 
-        // 4. Days since last login
+        // 4. Recency (Days since last login)
+        // Key factor for "Churn Risk" calculation
         const [daysRows] = await pool.execute(
             `SELECT DATEDIFF(CURDATE(), DATE(last_login)) as days_since 
              FROM student WHERE student_ID = ?`,
@@ -56,7 +71,8 @@ class RLService {
         );
         const daysSinceLastLogin = daysRows[0]?.days_since || 0;
 
-        // 5. Daily XP (steps completed today × ~80 XP)
+        // 5. Daily XP (Points earned today)
+        // Indicates "Current Momentum"
         const [dailyXpRows] = await pool.execute(
             `SELECT COUNT(DISTINCT step_ID) * 80 as daily_xp 
              FROM study_plan 
@@ -66,7 +82,8 @@ class RLService {
         );
         const dailyXp = dailyXpRows[0]?.daily_xp || 0;
 
-        // 6. Modules done today
+        // 6. Modules Done Today
+        // Granular volume of work completed
         const [modulesDoneRows] = await pool.execute(
             `SELECT COUNT(DISTINCT step_ID) as modules_done 
              FROM study_plan 
@@ -76,7 +93,8 @@ class RLService {
         );
         const modulesDone = modulesDoneRows[0]?.modules_done || 0;
 
-        // 7. Recent points (XP since login)
+        // 7. Recent Points (XP earned since last login)
+        // Validates "Session Productivity"
         const [recentPointsRows] = await pool.execute(
             `SELECT COUNT(DISTINCT step_ID) * 80 as recent_points
              FROM study_plan 
@@ -86,14 +104,16 @@ class RLService {
         );
         const recentPoints = recentPointsRows[0]?.recent_points || 0;
 
-        // 8. Total badges
+        // 8. Total Badges
+        // Proxy for "Long term achievement/motivation"
         const [badgesRows] = await pool.execute(
             `SELECT COUNT(*) as total_badges FROM student_badges WHERE student_ID = ?`,
             [studentId]
         );
         const totalBadges = badgesRows[0]?.total_badges || 0;
 
-        // 9. Session duration (seconds spent on quizzes since login)
+        // 9. Session Duration (Actual seconds spent in quizzes)
+        // Accurate measure of "Time on Task"
         const [sessionRows] = await pool.execute(
             `SELECT SUM(TIMESTAMPDIFF(SECOND, attempted_at, finished_at)) as session_duration
              FROM quiz_attempts 
@@ -103,7 +123,8 @@ class RLService {
         );
         const sessionDuration = sessionRows[0]?.session_duration || 0;
 
-        // 10. Quiz score (latest attempts)
+        // 10. Quiz Score Trend (Avg of last 10 attempts)
+        // Detects if performance is improving or degrading
         const [quizScoreRows] = await pool.execute(
             `SELECT ROUND(AVG(score) * 100) as quiz_score 
              FROM quiz_attempts 
@@ -113,7 +134,8 @@ class RLService {
         );
         const quizScore = quizScoreRows[0]?.quiz_score || 0;
 
-        // 11. Consecutive completions
+        // 11. Consecutive Completions
+        // Streak of successful module completions
         const [consecutiveRows] = await pool.execute(
             `SELECT COUNT(DISTINCT step_ID) as consecutive 
              FROM study_plan 

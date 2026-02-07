@@ -5,6 +5,15 @@ import ProfileUploadModal from '../components/ProfileUploadModal';
 import EditProfileModal from '../components/EditProfileModal';
 import '../styles/profile.css';
 
+/**
+ * Profile Page
+ * 
+ * Displays user details and achievements.
+ * Features:
+ * - Stats Overview: Personal Bests (Highest Score, Longest Streak).
+ * - Badges: Visual gallery of earned achievements.
+ * - Profile Management: Edit Modal and Avatar Upload.
+ */
 const ProfilePage = () => {
     const [user, setUser] = useState(authService.getCurrentUser());
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);

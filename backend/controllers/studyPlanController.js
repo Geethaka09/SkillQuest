@@ -3,8 +3,21 @@ const GamificationService = require('../services/GamificationService');
 const RLService = require('../services/RLService');
 
 /**
- * Get student's learning progress from study_plan table
- * Returns statistics, module list with statuses, and current module info
+ * Study Plan Controller
+ * Manages the student's learning path, including module progression, unlocking logic, and quiz submissions.
+ */
+
+/**
+ * Get Student Progress
+ * 
+ * Aggregates study plan data to render the dashboard or learning roadmap.
+ * 
+ * Logic:
+ * 1. Groups modules by week.
+ * 2. Calculates completion status (LOCKED, ACTIVE, COMPLETED).
+ * 3. Handles Time-Gating: Weeks unlock sequentially (Week 1 = Day 0, Week 2 = Day 7, etc.).
+ * 
+ * @returns {Object} { totalModules, completedModules, percentComplete, currentModule, modules[] }
  */
 const getStudentProgress = async (req, res) => {
     try {
@@ -65,8 +78,12 @@ const getStudentProgress = async (req, res) => {
             // Calculate when this week should unlock based on start_date
             // Week 1 unlocks immediately, Week 2 unlocks after 7 days, Week 3 after 14 days, etc.
             const daysUntilUnlock = (week.week_number - 1) * 7;
-            const unlockDate = new Date(planStartDate.getTime() + (daysUntilUnlock * ONE_DAY_MS));
-            const daysSincePlanStart = Math.floor((today - planStartDate) / ONE_DAY_MS);
+            const startTimestamp = planStartDate.getTime();
+            // Safety check for invalid dates
+            const validStart = isNaN(startTimestamp) ? Date.now() : startTimestamp;
+
+            const unlockDate = new Date(validStart + (daysUntilUnlock * ONE_DAY_MS));
+            const daysSincePlanStart = Math.floor((today - new Date(validStart)) / ONE_DAY_MS);
             const isTimeUnlocked = daysSincePlanStart >= daysUntilUnlock;
 
             // Determine module status
@@ -144,7 +161,10 @@ const getStudentProgress = async (req, res) => {
 };
 
 /**
- * Get learning content for a specific week/module
+ * Get Week Content
+ * Fetches all learning steps (quizzes, readings) for a specific week.
+ * 
+ * @param {number} weekNumber
  */
 const getWeekContent = async (req, res) => {
     try {
@@ -219,7 +239,13 @@ const getWeekContent = async (req, res) => {
 };
 
 /**
- * Get content for a specific step (for quiz page)
+ * Get Step Content
+ * Fetches a single step's content (learning material + questions).
+ * 
+ * Feature: RL Feedback Trigger
+ * If `recId` (Recommendation ID) is present in query params, it signals that 
+ * the student accepted a recommendation (e.g., clicked "Lets Go" on a bonus goal).
+ * This endpoint will asynchronously send feedback to the RL API to record engagement (Reward +1).
  */
 const getStepContent = async (req, res) => {
     try {
@@ -297,9 +323,18 @@ const getStepContent = async (req, res) => {
 };
 
 /**
- * Submit quiz answers for a step
- * Stores responses in quiz_attempts table
- * Unlocks next step if all correct
+ * Submit Step Quiz
+ * 
+ * Handles quiz submission, grading, and progression.
+ * 
+ * Flow:
+ * 1. Grades the submission against correct answers in DB.
+ * 2. If Passed (Score >= 60%):
+ *    - Updates step status to 'COMPLETED'.
+ *    - Unlocks next step.
+ *    - Awards XP and updates Streaks via GamificationService.
+ *    - Calls RL API to get personalized "After-Action Report" (e.g., Badge, Rank comparison).
+ * 3. Returns result to frontend including any RL recommendation.
  */
 const submitStepQuiz = async (req, res) => {
     try {

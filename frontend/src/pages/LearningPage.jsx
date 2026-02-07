@@ -5,6 +5,18 @@ import Layout from '../components/Layout';
 import '../styles/learningPage.css';
 import ReactMarkdown from 'react-markdown';
 
+/**
+ * Learning Page
+ * 
+ * The main interface for consuming educational content.
+ * Features:
+ * - Dual Views:
+ *   1. Overview: Card-based grid of all steps in the week.
+ *   2. Learning Mode: Sidebar navigation + Content area.
+ * - Progress Tracking: Visual indicators for Locked, In-Progress, and Completed steps.
+ * - Markdown Rendering: Renders the actual educational content safely.
+ * - Deep Linking: Can resume directly to a specific step (via `location.state.resume`).
+ */
 const LearningPage = () => {
     const { weekNumber } = useParams();
     const navigate = useNavigate();

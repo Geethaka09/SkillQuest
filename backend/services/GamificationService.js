@@ -1,24 +1,35 @@
 const pool = require('../config/database');
 
 /**
- * GamificationService - Handles all XP leveling and streak mechanics
+ * GamificationService
+ * Core service for managing the gamification loop: XP, Levels, and Streaks.
  * 
- * Key Features:
- * - Quadratic leveling formula: Level = floor(sqrt(TotalXP / 100))
- * - Server-side date handling for streak logic (never trust client)
- * - Dashboard payload preparation
+ * Architecture Note:
+ * This service encapsulates all "write" logic for the gamification system.
+ * Controllers should simpler call these methods rather than writing SQL directly.
+ * 
+ * Key Mechanics:
+ * 1. Progression: Quadratic leveling curve (Level = floor(sqrt(totalXP/100))).
+ * 2. Retention: Daily streak system with server-side validation.
+ * 3. Rewards: Badges and immediate XP feedback.
  */
 class GamificationService {
     /**
-     * Calculate level from total XP using quadratic formula
-     * Level = floor(sqrt(TotalXP / 100))
+     * Calculates the current level based on total XP.
+     * Formula: Level = floor(sqrt(TotalXP / 100))
      * 
-     * XP Required per Level:
-     * Level 1: 100 XP | Level 2: 400 XP | Level 3: 900 XP
-     * Level 5: 2500 XP | Level 10: 10000 XP | Level 20: 40000 XP
+     * Why Quadratic?
+     * It makes early levels easy to reach (fast dopamine hits), while higher levels
+     * require exponentially more effort, maintaining long-term challenge.
      * 
-     * @param {number} totalXP - Total experience points
-     * @returns {number} Current level (minimum 0)
+     * Landmarks:
+     * - 100 XP -> Level 1
+     * - 400 XP -> Level 2
+     * - 2500 XP -> Level 5
+     * - 10000 XP -> Level 10
+     * 
+     * @param {number} totalXP - Total experience points gathered by the user.
+     * @returns {number} The calculated level (integer).
      */
     static calculateLevel(totalXP) {
         if (totalXP < 0) return 0;
@@ -26,11 +37,11 @@ class GamificationService {
     }
 
     /**
-     * Calculate XP required to reach a specific level (inverse formula)
-     * XP = level² × 100
+     * Inverse of calculateLevel. Returns the minimum XP needed to reach a specific level.
+     * Used to calculate progress bars (e.g., "450/900 XP to next level").
      * 
-     * @param {number} level - Target level
-     * @returns {number} Total XP required for that level
+     * @param {number} level - The target level.
+     * @returns {number} The total XP required to reach that level.
      */
     static calculateXPForLevel(level) {
         if (level < 0) return 0;
@@ -38,9 +49,11 @@ class GamificationService {
     }
 
     /**
-     * Get the title/rank name based on level
-     * @param {number} level - Current level
-     * @returns {string} Title name
+     * Map numerical levels to cool rank titles.
+     * Used for UI display to give users a sense of identity.
+     * 
+     * @param {number} level - Current user level.
+     * @returns {string} The rank title (e.g., "RISING STAR").
      */
     static getLevelTitle(level) {
         if (level >= 50) return 'LEGENDARY MASTER';
@@ -56,12 +69,10 @@ class GamificationService {
     }
 
     /**
-     * Calculate the difference in days between two dates
-     * Uses UTC to avoid timezone issues
+     * Utility: Calculates days between two timestamps.
+     * Uses UTC to prevent streak bugs caused by timezone shifts (e.g., travel).
      * 
-     * @param {Date} date1 - First date
-     * @param {Date} date2 - Second date
-     * @returns {number} Number of days difference (always positive)
+     * @returns {number} Absolute difference in days.
      */
     static daysDifference(date1, date2) {
         const utc1 = Date.UTC(date1.getFullYear(), date1.getMonth(), date1.getDate());
@@ -70,16 +81,19 @@ class GamificationService {
     }
 
     /**
-     * Update user streak based on activity
-     * CRUCIAL: Server-side date handling - never trust client date
+     * Updates the user's daily streak.
      * 
-     * Logic:
-     * - If last_date was Yesterday (1 day difference): Increment streak
-     * - If last_date was Today (0 days difference): Do nothing
-     * - If last_date was Older (>1 day) OR Null: Reset streak to 1
+     * CRITICAL LOGIC:
+     * 1. Comparison is done against the SERVER time (UTC), never the client time.
+     * 2. Idempotency: Calling this multiple times in one day has no side effects.
      * 
-     * @param {string} userId - Student ID
-     * @returns {Promise<{streak: number, updated: boolean}>} New streak value and whether it was updated
+     * State Transitions:
+     * - Last Login = Yesterday -> Streak++ (Maintained!)
+     * - Last Login = Today     -> No Change (Already handled)
+     * - Last Login < Yesterday -> Streak = 1 (Reset :()
+     * 
+     * @param {string} userId - The student's ID.
+     * @returns {Promise<{streak: number, updated: boolean}>} The new streak value.
      */
     static async updateStreak(userId) {
         // Generate today's date on SERVER - never trust client

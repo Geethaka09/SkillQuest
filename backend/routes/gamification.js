@@ -1,26 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const { getDashboardStats, addXP, getDailyGoals, getUserBadges } = require('../controllers/gamificationController');
 const auth = require('../middleware/auth');
+const {
+    getDashboardStats,
+    addXP,
+    getDailyGoals,
+    getUserBadges
+} = require('../controllers/gamificationController');
+
+/**
+ * Gamification Routes
+ * Base URL: /api/gamification
+ */
 
 // @route   GET /api/gamification/dashboard
-// @desc    Get gamification dashboard stats (XP level, streak, progress)
+// @desc    Get main dashboard stats (Level, Streak, Progress)
 // @access  Private
 router.get('/dashboard', auth, getDashboardStats);
 
 // @route   GET /api/gamification/daily-goals
-// @desc    Get today's goals progress
+// @desc    Get today's 3 assigned goals
 // @access  Private
 router.get('/daily-goals', auth, getDailyGoals);
 
-// @route   POST /api/gamification/add-xp
-// @desc    Add XP to user (for system use)
-// @access  Private
-router.post('/add-xp', auth, addXP);
-
 // @route   GET /api/gamification/badges
-// @desc    Get user's earned badges
+// @desc    Get all earned badges
 // @access  Private
 router.get('/badges', auth, getUserBadges);
+
+// @route   POST /api/gamification/add-xp
+// @desc    Manually award XP (e.g., from external events)
+// @access  Private
+router.post('/add-xp', auth, addXP);
 
 module.exports = router;

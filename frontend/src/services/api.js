@@ -9,7 +9,7 @@ const api = axios.create({
     }
 });
 
-// Add token to requests if available
+// Request Interceptor: Injects JWT token into every request
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -18,7 +18,10 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Auth services
+/**
+ * Authentication Service
+ * Handles user sessions, registration, and profile management.
+ */
 export const authService = {
     login: async (email, password, rememberMe = false) => {
         const response = await api.post('/auth/login', { email, password, rememberMe });
@@ -50,7 +53,7 @@ export const authService = {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        // Update local storage if successful
+        // Update local storage if successful to reflect changes immediately
         if (response.data.success && response.data.profilePic) {
             const user = JSON.parse(localStorage.getItem('user'));
             if (user) {
@@ -66,7 +69,7 @@ export const authService = {
         if (response.data.success && response.data.user) {
             const user = JSON.parse(localStorage.getItem('user'));
             if (user) {
-                // Merge new data (e.g. name)
+                // Merge new data (e.g. name, bio)
                 const updatedUser = { ...user, ...response.data.user };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
             }
@@ -121,7 +124,10 @@ export const authService = {
     }
 };
 
-// Quiz services
+/**
+ * Quiz Service
+ * Handles the initial placement test logic.
+ */
 export const quizService = {
     getInitialQuiz: async () => {
         const response = await api.get('/quiz/initial');
@@ -134,7 +140,10 @@ export const quizService = {
     }
 };
 
-// Gamification services
+/**
+ * Gamification Service
+ * Manages XP, levels, streaks, badges, and daily goals.
+ */
 export const gamificationService = {
     getDashboardStats: async () => {
         const response = await api.get('/gamification/dashboard');
@@ -157,7 +166,10 @@ export const gamificationService = {
     }
 };
 
-// Study Plan services
+/**
+ * Study Plan Service
+ * Fetches generated curriculum, tracks progress, and handles step-by-step content.
+ */
 export const studyPlanService = {
     getProgress: async () => {
         const response = await api.get('/study-plan/progress');
@@ -169,6 +181,7 @@ export const studyPlanService = {
         return response.data;
     },
 
+    // Fetches individual step content, optionally passing a Recommendation ID for RL tracking
     getStepContent: async (weekNumber, stepId, recId = null) => {
         const url = recId
             ? `/study-plan/step/${weekNumber}/${stepId}?recId=${recId}`
@@ -183,7 +196,10 @@ export const studyPlanService = {
     }
 };
 
-// Analytics services
+/**
+ * Analytics Service
+ * Provides data for the Weekly Engagement and XP Velocity charts.
+ */
 export const analyticsService = {
     getWeeklyEngagement: async (range = '7days') => {
         const response = await api.get(`/analytics/weekly-engagement?range=${range}`);
@@ -196,7 +212,10 @@ export const analyticsService = {
     }
 };
 
-// RL (Reinforcement Learning) services
+/**
+ * RL (Reinforcement Learning) Service
+ * Inter-service communication with the Python RL Agent.
+ */
 export const rlService = {
     getRecommendation: async () => {
         const response = await api.get('/rl/recommend');

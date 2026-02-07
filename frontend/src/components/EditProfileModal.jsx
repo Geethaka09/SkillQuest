@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import { authService } from '../services/api';
 import '../styles/profile.css';
 
+/**
+ * Edit Profile Modal
+ * 
+ * Simple form to update user Basic Info (Name, Bio).
+ * Pre-fills form with current user data on open.
+ */
 const EditProfileModal = ({ isOpen, onClose, currentUser, onUpdateSuccess }) => {
     const [name, setName] = useState('');
     const [bio, setBio] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Pre-populate fields when modal opens
     useEffect(() => {
         if (isOpen && currentUser) {
             setName(currentUser.name || '');

@@ -1,8 +1,21 @@
 const pool = require('../config/database');
 
 /**
- * Get weekly engagement analytics data
- * Returns hours spent per day of week for the last 7 days
+ * Analytics Controller
+ * Powers the "Performance Analytics" page with data visualizations.
+ */
+
+/**
+ * Get Weekly Engagement
+ * 
+ * Aggregates study time per day for the last 7/14/30 days.
+ * 
+ * Complex Logic:
+ * - Handling "Abandoned" Sessions: If a quiz has no `finished_at`, we assume a default duration of 5 minutes.
+ * - Data Normalization: SQl returns days with activity; we map this to a full Mon-Sun array filling 0s for missing days.
+ * - Stat Calculation: Computes total, average, and peak day for the summary cards.
+ * 
+ * @returns {Object} { chartData: [{day, hours}], summary: { total, average, peak } }
  */
 const getWeeklyEngagement = async (req, res) => {
     try {
@@ -103,7 +116,17 @@ const getFullDayName = (shortDay) => {
 };
 
 /**
- * Get daily XP velocity (points earned per day)
+ * Get Daily XP Velocity
+ * 
+ * Reconstructs XP earning history by analyzing quiz logs.
+ * Since `student.total_xp` is a scalar value, we must "replay" history from `quiz_attempts`
+ * to show a daily breakdown chart.
+ * 
+ * Logic:
+ * 1. Fetch all quiz attempts in range.
+ * 2. Re-score them to verify they passed (>= 60%).
+ * 3. Calculate XP for that attempt (Base 50 + 10 * Score).
+ * 4. Aggregate by day.
  */
 const getDailyXP = async (req, res) => {
     try {

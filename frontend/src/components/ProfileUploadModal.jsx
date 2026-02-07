@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { authService } from '../services/api';
 import '../styles/profile.css'; // Re-use profile styles or add specific modal styles
 
+/**
+ * Profile Upload Modal
+ * 
+ * Handles Profile Picture updates.
+ * Features:
+ * - Client-side validation (File type check).
+ * - Instant Preview (prop: `previewUrl`) before uploading.
+ * - Multipart/form-data upload via `authService`.
+ */
 const ProfileUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -24,6 +33,7 @@ const ProfileUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
                 return;
             }
             setSelectedFile(file);
+            // Create a local URL for preview
             const objectUrl = URL.createObjectURL(file);
             setPreviewUrl(objectUrl);
             setError('');
