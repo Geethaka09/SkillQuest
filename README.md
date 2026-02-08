@@ -27,6 +27,16 @@ SkillQuest/
     └── vite.config.js
 ```
 
+## ✨ Key Features
+
+- **Adaptive Learning**: AI-driven study plans that evolve with your progress.
+- **Gamification**: Earn XP, badges, and maintain streaks to stay motivated.
+- **Secure Authentication**:
+  - Email Verification & Resend Capability.
+  - Forgot/Reset Password flows.
+  - JWT-based session management.
+- **Performance Analytics**: Visual data on your learning velocity and engagement.
+
 ## 🚀 Prerequisites
 
 Before running the project, make sure you have the following installed:
@@ -34,6 +44,20 @@ Before running the project, make sure you have the following installed:
 - **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js)
 - **MySQL** database (or access to a MySQL server)
+
+### 3. Database Setup
+
+1. Create a MySQL database named `skillquest`.
+2. Import the initial schema (if you have `schema.sql`).
+3. **Run Migrations**: To enable email verification and password reset features, run the following scripts in your database:
+   - `backend/migrations/add_verification_cols.sql`
+   - `backend/migrations/add_reset_password_cols.sql`
+   
+   *Alternatively, you can use the provided migration runner:*
+   ```bash
+   cd backend
+   node run_migration.js
+   ```
 
 ## ⚙️ Setup Instructions
 
@@ -65,6 +89,15 @@ cd SkillQuest
    DB_PORT=3306
    JWT_SECRET=your_secret_key_here
    PORT=5000
+   
+   # Email Configuration (Nodemailer)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_USER=your_email@gmail.com
+   SMTP_PASS=your_email_app_password
+   
+   # Frontend URL (for email links)
+   FRONTEND_URL=http://localhost:5173
    ```
 
 4. Start the backend server:
