@@ -415,6 +415,28 @@
   }
 }
 
+/* Centered Layout for Forgot/Reset Password */
+.login-centered {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+}
+
+.login-centered .login-card {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .login-page {

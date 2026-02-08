@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { authService } from '../services/api';
+import { Link } from 'react-router-dom';
 import '../styles/login.css';
 
 /**
@@ -268,7 +269,7 @@ const LoginPage = () => {
                                     />
                                     <span>Remember</span>
                                 </label>
-                                <a href="#" className="forgot-link">Forgot?</a>
+                                <Link to="/forgot-password" className="forgot-link">Forgot?</Link>
                             </div>
                         )}
 

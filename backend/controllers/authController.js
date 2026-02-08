@@ -888,4 +888,88 @@ const resendVerification = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe, getAccountInfo, getPersonalBests, upload, uploadProfilePic, updateProfile, changePassword, changeEmail, deleteAccount, logExit, verifyEmail, resendVerification };
+
+// Forgot Password
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Please provide an email address' });
+        }
+
+        const [rows] = await pool.execute('SELECT student_ID, name FROM student WHERE email = ?', [email]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const student = rows[0];
+        const resetToken = crypto.randomBytes(20).toString('hex');
+        const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' '); // 1 hour
+
+        await pool.execute(
+            'UPDATE student SET reset_password_token = ?, reset_password_expires = ? WHERE student_ID = ?',
+            [resetToken, resetTokenExpires, student.student_ID]
+        );
+
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        const message = `
+            <h1>Password Reset Request</h1>
+            <p>Hi ${student.name},</p>
+            <p>You requested a password reset. Please click the link below to set a new password:</p>
+            <a href="${resetUrl}" clicktracking=off>${resetUrl}</a>
+            <p>This link will expire in 1 hour.</p>
+        `;
+
+        await sendEmail({
+            email: email,
+            subject: 'SkillQuest Password Reset',
+            message
+        });
+
+        res.json({ success: true, message: 'Password reset email sent.' });
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// Reset Password
+const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ success: false, message: 'Please provide a new password' });
+        }
+
+        const [rows] = await pool.execute(
+            'SELECT student_ID FROM student WHERE reset_password_token = ? AND reset_password_expires > NOW()',
+            [token]
+        );
+
+        if (rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+        }
+
+        const student = rows[0];
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        await pool.execute(
+            'UPDATE student SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE student_ID = ?',
+            [hashedPassword, student.student_ID]
+        );
+
+        res.json({ success: true, message: 'Password reset successful. You can now login.' });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+module.exports = { login, register, getMe, getAccountInfo, getPersonalBests, upload, uploadProfilePic, updateProfile, changePassword, changeEmail, deleteAccount, logExit, verifyEmail, resendVerification, forgotPassword, resetPassword };

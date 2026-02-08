@@ -17,7 +17,7 @@ const runMigration = async () => {
 
         console.log('Connected to database.');
 
-        const sqlPath = path.join(__dirname, 'migrations', 'add_verification_cols.sql');
+        const sqlPath = path.join(__dirname, 'migrations', 'add_reset_password_cols.sql');
         const sql = fs.readFileSync(sqlPath, 'utf8');
 
         console.log('Executing migration...');

@@ -23,6 +23,4 @@ yarn-error.log*
 *.sw?
 
 
-git add .gitignore
-git commit -m "Remove .env and add .gitignore"
-git push
+

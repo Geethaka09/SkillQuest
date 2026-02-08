@@ -6,7 +6,8 @@ const {
     getAccountInfo, getPersonalBests,
     upload, uploadProfilePic, updateProfile,
     changePassword, changeEmail, deleteAccount, logExit,
-    verifyEmail, resendVerification
+    verifyEmail, resendVerification,
+    forgotPassword, resetPassword
 } = require('../controllers/authController');
 
 /**
@@ -42,6 +43,16 @@ router.post('/verify-email', verifyEmail);
 // @desc    Resend verification email
 // @access  Public
 router.post('/resend-verification', resendVerification);
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request password reset
+// @access  Public
+router.post('/forgot-password', forgotPassword);
+
+// @route   POST /api/auth/reset-password/:token
+// @desc    Reset password
+// @access  Public
+router.post('/reset-password/:token', resetPassword);
 
 
 // ==========================================
