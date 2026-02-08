@@ -12,8 +12,26 @@ const pool = mysql.createPool({
   },
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  // Azure specific tuning to prevent ECONNRESET
+  idleTimeout: 60000, // Close idle connections after 60s (well below Azure's 4min default)
+  maxIdle: 0 // Do not keep idle connections open
 });
+
+// Wrapper to handle connection errors automatically
+const query = async (sql, params) => {
+  try {
+    return await pool.execute(sql, params);
+  } catch (error) {
+    if (error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.warn('⚠️ Database connection lost, retrying query...');
+      return await pool.execute(sql, params);
+    }
+    throw error;
+  }
+};
 
 // Test connection
 const testConnection = async () => {
