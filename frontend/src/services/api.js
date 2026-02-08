@@ -40,10 +40,18 @@ export const authService = {
             lastName,
             userName
         });
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-        }
+        // Note: We don't auto-login or store token here anymore because email verification is required.
+        // The token returned might be for verification context or none at all.
+        return response.data;
+    },
+
+    verifyEmail: async (token) => {
+        const response = await api.post('/auth/verify-email', { token });
+        return response.data;
+    },
+
+    resendVerificationEmail: async (email) => {
+        const response = await api.post('/auth/resend-verification', { email });
         return response.data;
     },
 

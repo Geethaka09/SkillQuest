@@ -5,7 +5,8 @@ const {
     login, register, getMe,
     getAccountInfo, getPersonalBests,
     upload, uploadProfilePic, updateProfile,
-    changePassword, changeEmail, deleteAccount, logExit
+    changePassword, changeEmail, deleteAccount, logExit,
+    verifyEmail, resendVerification
 } = require('../controllers/authController');
 
 /**
@@ -31,6 +32,16 @@ router.post('/register', register);
 // @desc    Log when user exits (via beacon)
 // @access  Public (No Auth Header)
 router.post('/log-exit', logExit);
+
+// @route   POST /api/auth/verify-email
+// @desc    Verify user email
+// @access  Public
+router.post('/verify-email', verifyEmail);
+
+// @route   POST /api/auth/resend-verification
+// @desc    Resend verification email
+// @access  Public
+router.post('/resend-verification', resendVerification);
 
 
 // ==========================================

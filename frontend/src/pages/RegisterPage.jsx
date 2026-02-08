@@ -62,12 +62,18 @@ const RegisterPage = () => {
                 formData.lastName,
                 formData.userName
             );
-            setSuccess('Account created successfully! Redirecting to login...');
+            setSuccess('Account created successfully! Please check your email to activate your account.');
             console.log('Registration successful:', response);
-            // Redirect to login page
-            setTimeout(() => {
-                navigate('/');
-            }, 1500);
+            // Clear form
+            setFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                userName: '',
+                password: '',
+                confirmPassword: ''
+            });
+            // No auto-redirect, let user see the message
         } catch (err) {
             const message = err.response?.data?.message || 'Registration failed. Please try again.';
             setError(message);

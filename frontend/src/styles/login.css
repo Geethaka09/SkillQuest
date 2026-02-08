@@ -368,6 +368,24 @@
   margin-bottom: 20px;
 }
 
+.resend-action-btn {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #b91c1c;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-left: 24px;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.resend-action-btn:hover {
+  color: #7f1d1d;
+}
+
 /* Footer */
 .footer {
   position: absolute;

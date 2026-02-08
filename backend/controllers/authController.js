@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 /**
  * Auth Controller
@@ -41,6 +43,14 @@ const login = async (req, res) => {
         }
 
         const student = rows[0];
+
+        // Check if email is verified
+        if (!student.is_verified) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please verify your email address to login.'
+            });
+        }
 
         // Check password - first try direct comparison (for legacy plain text passwords)
         // then try bcrypt comparison (for hashed passwords)
@@ -177,18 +187,43 @@ const register = async (req, res) => {
         // Combine first and last name
         const fullName = `${firstName} ${lastName}`;
 
+        // Generate verification token
+        const verificationToken = crypto.randomBytes(20).toString('hex');
+        // Token expires in 24 hours
+        const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
         // Hash password
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
         // Insert student with username column - status=0 means quiz pending
+        // Added is_verified, verification_token, verification_token_expires
         await pool.execute(
             `INSERT INTO student (student_ID, name, email, username, password, status, level, at_score, p_score, ct_score, 
         ct_tol_easy, ct_tol_med, ct_tol_hard, at_tol_easy, at_tol_med, at_tol_hard, 
-        p_tol_easy, p_tol_med, p_tol_hard) 
-       VALUES (?, ?, ?, ?, ?, 0, 'beginner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)`,
-            [studentId, fullName, email, userName || '', passwordHash]
+        p_tol_easy, p_tol_med, p_tol_hard, is_verified, verification_token, verification_token_expires) 
+       VALUES (?, ?, ?, ?, ?, 0, 'beginner', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, ?)`,
+            [studentId, fullName, email, userName || '', passwordHash, verificationToken, verificationTokenExpires]
         );
+
+        // Send verification email
+        try {
+            const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
+            const message = `
+                <h1>Email Verification</h1>
+                <p>Please click the link below to verify your email address:</p>
+                <a href="${verificationUrl}" clicktracking=off>${verificationUrl}</a>
+            `;
+
+            await sendEmail({
+                email: email,
+                subject: 'SkillQuest Email Verification',
+                message
+            });
+        } catch (error) {
+            console.error('Email sending failed:', error);
+            // We don't rollback registration, but user might need to request resend
+        }
 
         // Create JWT token
         const token = jwt.sign(
@@ -199,7 +234,7 @@ const register = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Registration successful',
+            message: 'Check your email to activate your account.',
             token,
             user: {
                 id: studentId,
@@ -214,7 +249,7 @@ const register = async (req, res) => {
         console.error('Registration error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error. Please try again.'
+            message: 'Server error: ' + error.message
         });
     }
 };
@@ -730,4 +765,127 @@ const deleteAccount = async (req, res) => {
     }
 };
 
-module.exports = { login, register, getMe, getAccountInfo, getPersonalBests, upload, uploadProfilePic, updateProfile, changePassword, changeEmail, deleteAccount, logExit };
+// Verify Email
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid verification token'
+            });
+        }
+
+        // Find user with matching token and not expired
+        const [rows] = await pool.execute(
+            'SELECT student_ID FROM student WHERE verification_token = ? AND verification_token_expires > NOW()',
+            [token]
+        );
+
+        if (rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired verification token'
+            });
+        }
+
+        const student = rows[0];
+
+        // Update user to verified and clear token
+        await pool.execute(
+            'UPDATE student SET is_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE student_ID = ?',
+            [student.student_ID]
+        );
+
+        res.json({
+            success: true,
+            message: 'Email verified successfully. You can now login.'
+        });
+
+    } catch (error) {
+        console.error('Verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+
+// Resend Verification Email
+const resendVerification = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide an email address'
+            });
+        }
+
+        // Check user exists
+        const [rows] = await pool.execute(
+            'SELECT student_ID, is_verified, name FROM student WHERE email = ?',
+            [email]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        const student = rows[0];
+
+        if (student.is_verified) {
+            return res.status(400).json({
+                success: false,
+                message: 'Account already verified. Please login.'
+            });
+        }
+
+        // Generate new token
+        const verificationToken = crypto.randomBytes(20).toString('hex');
+        // Set expiry to 10 minutes from now
+        const verificationTokenExpires = new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
+        // Update database
+        await pool.execute(
+            'UPDATE student SET verification_token = ?, verification_token_expires = ? WHERE student_ID = ?',
+            [verificationToken, verificationTokenExpires, student.student_ID]
+        );
+
+        // Send email
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+        const message = `
+            <h1>Email Verification</h1>
+            <p>Hi ${student.name},</p>
+            <p>Please click the link below to verify your account:</p>
+            <a href="${verificationUrl}" clicktracking=off>${verificationUrl}</a>
+            <p>This link will expire in 10 minutes.</p>
+        `;
+
+        await sendEmail({
+            email: email,
+            subject: 'Resend: SkillQuest Email Verification',
+            message
+        });
+
+        res.json({
+            success: true,
+            message: 'Verification email resent. Please check your inbox.'
+        });
+
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+module.exports = { login, register, getMe, getAccountInfo, getPersonalBests, upload, uploadProfilePic, updateProfile, changePassword, changeEmail, deleteAccount, logExit, verifyEmail, resendVerification };

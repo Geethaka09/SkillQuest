@@ -9,6 +9,7 @@ import SettingsPage from './pages/SettingsPage';
 import InitialQuizPage from './pages/InitialQuizPage';
 import LearningPage from './pages/LearningPage';
 import StepQuizPage from './pages/StepQuizPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import { authService } from './services/api';
 
 // Protected Route component - checks authentication and quiz completion status
@@ -79,6 +80,7 @@ function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route
           path="/initial-quiz"
           element={

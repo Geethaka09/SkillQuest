@@ -19,6 +19,7 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [showResend, setShowResend] = useState(false);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -82,6 +83,23 @@ const LoginPage = () => {
         } catch (err) {
             const message = err.response?.data?.message || 'An error occurred. Please try again.';
             setError(message);
+            if (message.toLowerCase().includes('verify')) {
+                setShowResend(true);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        try {
+            setLoading(true);
+            await authService.resendVerificationEmail(formData.email);
+            setSuccess('Verification email resent! Please check your inbox.');
+            setError('');
+            setShowResend(false);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to resend email.');
         } finally {
             setLoading(false);
         }
@@ -137,13 +155,29 @@ const LoginPage = () => {
                     </p>
 
                     {error && (
-                        <div className="error-message">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            {error}
+                        <div
+                            className="error-message"
+                            style={{
+                                flexDirection: showResend ? 'column' : 'row',
+                                alignItems: showResend ? 'flex-start' : 'center'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                <span>{error}</span>
+                            </div>
+                            {showResend && (
+                                <button
+                                    onClick={handleResend}
+                                    className="resend-action-btn"
+                                >
+                                    Resend Verification Email
+                                </button>
+                            )}
                         </div>
                     )}
 
