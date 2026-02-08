@@ -1,0 +1,28 @@
+# Environment Variables
+.env
+backend/.env
+frontend/.env
+
+# Node Modules
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+git add .gitignore
+git commit -m "Remove .env and add .gitignore"
+git push
