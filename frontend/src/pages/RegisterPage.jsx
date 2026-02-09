@@ -73,7 +73,10 @@ const RegisterPage = () => {
                 password: '',
                 confirmPassword: ''
             });
-            // No auto-redirect, let user see the message
+            // Redirect to login after 5 seconds
+            setTimeout(() => {
+                navigate('/');
+            }, 5000);
         } catch (err) {
             const message = err.response?.data?.message || 'Registration failed. Please try again.';
             setError(message);
