@@ -257,7 +257,8 @@ const completeQuiz = async (req, res) => {
             `SELECT 
                 iqp.response,
                 qb.correct_answer,
-                qb.category
+                qb.category,
+                qb.difficulty_rate
              FROM initial_question_paper iqp
              JOIN quiz_bank qb ON iqp.q_ID = qb.q_ID
              WHERE iqp.paper_ID = ? AND iqp.student_ID = ?`,
@@ -267,6 +268,11 @@ const completeQuiz = async (req, res) => {
         let at_score = 0;
         let ct_score = 0;
         let p_score = 0;
+
+        // Category × Difficulty breakdown counters
+        let ct_tol_easy = 0, ct_tol_med = 0, ct_tol_hard = 0;
+        let at_tol_easy = 0, at_tol_med = 0, at_tol_hard = 0;
+        let p_tol_easy = 0, p_tol_med = 0, p_tol_hard = 0;
 
         for (const row of results) {
             // Normalize strings for comparison
@@ -279,9 +285,24 @@ const completeQuiz = async (req, res) => {
                 (correctAns.length > 1 && userAns.includes(correctAns));
 
             if (userAns && isMatch) {
-                if (row.category === 'Analytical Thinking') at_score++;
-                else if (row.category === 'Computational Thinking') ct_score++;
-                else if (row.category === 'Programming') p_score++;
+                const diff = (row.difficulty_rate || '').trim();
+
+                if (row.category === 'Analytical Thinking') {
+                    at_score++;
+                    if (diff === 'Easy') at_tol_easy++;
+                    else if (diff === 'Moderate') at_tol_med++;
+                    else if (diff === 'Hard') at_tol_hard++;
+                } else if (row.category === 'Computational Thinking') {
+                    ct_score++;
+                    if (diff === 'Easy') ct_tol_easy++;
+                    else if (diff === 'Moderate') ct_tol_med++;
+                    else if (diff === 'Hard') ct_tol_hard++;
+                } else if (row.category === 'Programming') {
+                    p_score++;
+                    if (diff === 'Easy') p_tol_easy++;
+                    else if (diff === 'Moderate') p_tol_med++;
+                    else if (diff === 'Hard') p_tol_hard++;
+                }
             }
         }
 
@@ -290,9 +311,16 @@ const completeQuiz = async (req, res) => {
         // Update student status to 1 (quiz completed) and save scores
         await pool.execute(
             `UPDATE student 
-             SET status = 1, at_score = ?, ct_score = ?, p_score = ? 
+             SET status = 1, at_score = ?, ct_score = ?, p_score = ?,
+                 ct_tol_easy = ?, ct_tol_med = ?, ct_tol_hard = ?,
+                 at_tol_easy = ?, at_tol_med = ?, at_tol_hard = ?,
+                 p_tol_easy = ?, p_tol_med = ?, p_tol_hard = ?
              WHERE student_ID = ?`,
-            [at_score, ct_score, p_score, userId]
+            [at_score, ct_score, p_score,
+                ct_tol_easy, ct_tol_med, ct_tol_hard,
+                at_tol_easy, at_tol_med, at_tol_hard,
+                p_tol_easy, p_tol_med, p_tol_hard,
+                userId]
         );
 
         // Get updated user data

@@ -26,6 +26,16 @@ export const authService = {
     login: async (email, password, rememberMe = false) => {
         const response = await api.post('/auth/login', { email, password, rememberMe });
         if (response.data.token) {
+            // Only clear RL state if a DIFFERENT user is logging in
+            const newUserId = response.data.user?.id;
+            const lastRLUser = localStorage.getItem('lastRLUser');
+            if (lastRLUser && lastRLUser !== newUserId) {
+                localStorage.removeItem('cachedRLState');
+                localStorage.removeItem('activeRLBoost');
+                localStorage.removeItem('recommendationId');
+            }
+            localStorage.setItem('lastRLUser', newUserId);
+
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
         }
@@ -130,6 +140,9 @@ export const authService = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        // RL state is intentionally kept so the same user retains
+        // their RL progress when they log back in.
+        // It gets cleared on login only if a different user signs in.
     },
 
     getCurrentUser: () => {
