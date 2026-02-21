@@ -497,6 +497,18 @@ const updateProfile = async (req, res) => {
             });
         }
 
+        // Verify user exists
+        const [userCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [userId]
+        );
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
         // Update student name and bio
         await pool.execute(
             'UPDATE student SET name = ?, bio = ? WHERE student_ID = ?',
@@ -635,6 +647,18 @@ const changeEmail = async (req, res) => {
             });
         }
 
+        // Verify user exists
+        const [userCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [userId]
+        );
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
         // Update email
         await pool.execute(
             'UPDATE student SET email = ? WHERE student_ID = ?',
@@ -691,6 +715,18 @@ const logExit = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Student ID is required'
+            });
+        }
+
+        // Verify student exists
+        const [studentCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [studentId]
+        );
+        if (studentCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
             });
         }
 

@@ -1,0 +1,100 @@
+﻿================================================================================
+  SkillQuest API Endpoint Test Report
+  13/02/2026, 1:47:08 pm
+================================================================================
+
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  PUBLIC ENDPOINTS
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£à GET    /api/health                                   200   OK
+       ΓööΓöÇ SkillQuest API is running
+  ≡ƒöÆ POST   /api/auth/login                               401   UNAUTH
+       ΓööΓöÇ Invalid email or password
+  ΓÜá∩╕Å POST   /api/auth/register                            400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Please provide email and password
+  ≡ƒÆÑ POST   /api/auth/log-exit                            500   SERVER ERROR
+       ΓööΓöÇ Something went wrong!
+  ΓÜá∩╕Å POST   /api/auth/verify-email                        400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Invalid or expired verification token
+  ≡ƒöì POST   /api/auth/resend-verification                 404   NOT FOUND
+       ΓööΓöÇ User not found
+  ≡ƒöì POST   /api/auth/forgot-password                     404   NOT FOUND
+       ΓööΓöÇ User not found
+  ΓÜá∩╕Å POST   /api/auth/reset-password/faketoken            400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Invalid or expired token
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  PROTECTED ENDPOINTS (using JWT for user id=1)
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  ≡ƒöì GET    /api/auth/me                                  404   NOT FOUND
+       ΓööΓöÇ Student not found
+  ≡ƒöì GET    /api/auth/account-info                        404   NOT FOUND
+       ΓööΓöÇ Student not found
+  ≡ƒöì GET    /api/auth/personal-bests                      404   NOT FOUND
+       ΓööΓöÇ Student not found
+  ≡ƒÆÑ PUT    /api/auth/update-profile                      500   SERVER ERROR
+       ΓööΓöÇ Server error
+  ΓÜá∩╕Å PUT    /api/auth/change-password                     400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Password must be at least 6 characters
+  ≡ƒÆÑ PUT    /api/auth/change-email                        500   SERVER ERROR
+       ΓööΓöÇ Server error
+  ≡ƒÆÑ GET    /api/quiz/initial                             500   SERVER ERROR
+       ΓööΓöÇ Server error. Please try again.
+  ≡ƒÆÑ POST   /api/quiz/answer                              500   SERVER ERROR
+       ΓööΓöÇ Server error. Please try again.
+  ≡ƒÆÑ POST   /api/quiz/complete                            500   SERVER ERROR
+       ΓööΓöÇ Server error. Please try again.
+  ≡ƒöì GET    /api/gamification/dashboard                   404   NOT FOUND
+       ΓööΓöÇ User not found
+  Γ£à GET    /api/gamification/daily-goals                 200   OK
+       ΓööΓöÇ {"success":true,"data":{"goals":[{"id":1,"text":"Complete today's learning item","progress":"PROGRES
+  Γ£à GET    /api/gamification/badges                      200   OK
+       ΓööΓöÇ {"success":true,"data":[]}
+  ΓÜá∩╕Å POST   /api/gamification/add-xp                      400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Please provide a valid positive XP amount
+  Γ£à GET    /api/study-plan/progress                      200   OK
+       ΓööΓöÇ {"success":true,"totalModules":0,"completedModules":0,"percentComplete":0,"currentModule":null,"modu
+  ≡ƒöì GET    /api/study-plan/week/1                        404   NOT FOUND
+       ΓööΓöÇ No content found for this week
+  ≡ƒöì GET    /api/study-plan/step/1/1                      404   NOT FOUND
+       ΓööΓöÇ Step not found
+  ΓÜá∩╕Å POST   /api/study-plan/submit-quiz                   400   ROUTE WORKS (needs data)
+       ΓööΓöÇ Missing planId in submission
+  Γ£à GET    /api/analytics/weekly-engagement              200   OK
+       ΓööΓöÇ {"success":true,"data":{"chartData":[{"day":"Mon","hours":0},{"day":"Tue","hours":0},{"day":"Wed","h
+  Γ£à GET    /api/analytics/xp-velocity                    200   OK
+       ΓööΓöÇ {"success":true,"data":[{"day":"Sat","xp":0},{"day":"Sun","xp":0},{"day":"Mon","xp":0},{"day":"Tue",
+  Γ£à GET    /api/rl/recommend                             200   OK
+       ΓööΓöÇ Student not found
+  ≡ƒÆÑ GET    /api/rl/metrics                               500   SERVER ERROR
+       ΓööΓöÇ Failed to get metrics
+  Γ£à POST   /api/rl/feedback                              200   OK
+       ΓööΓöÇ Request failed with status code 400
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  SUMMARY
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+  Total endpoints tested: 30
+  Γ£à Success (2xx):       8
+  ΓÜá∩╕Å  Bad Request (400):   6 (route works, needs valid data)
+  ≡ƒöÆ Auth issues (401):   1 (user id=1 may not exist in DB)
+  ≡ƒÆÑ Server errors (5xx): 7
+  Γ¥î Connection failures:  0
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+
+ΓÜá∩╕Å  ENDPOINTS WITH SERVER ERRORS:
+  ≡ƒÆÑ POST /api/auth/log-exit
+     ΓööΓöÇ Something went wrong!
+  ≡ƒÆÑ PUT /api/auth/update-profile
+     ΓööΓöÇ Server error
+  ≡ƒÆÑ PUT /api/auth/change-email
+     ΓööΓöÇ Server error
+  ≡ƒÆÑ GET /api/quiz/initial
+     ΓööΓöÇ Server error. Please try again.
+  ≡ƒÆÑ POST /api/quiz/answer
+     ΓööΓöÇ Server error. Please try again.
+  ≡ƒÆÑ POST /api/quiz/complete
+     ΓööΓöÇ Server error. Please try again.
+  ≡ƒÆÑ GET /api/rl/metrics
+     ΓööΓöÇ Failed to get metrics

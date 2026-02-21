@@ -40,11 +40,22 @@ const InitialQuizPage = () => {
             if (response.success) {
                 setQuestions(response.questions);
                 setPaperId(response.paperId);
-                // Initialize answers array
-                setAnswers(response.questions.map(q => ({
+
+                // Restore previous answers from backend (response field)
+                const restoredAnswers = response.questions.map(q => ({
                     questionId: q.id,
-                    response: null
-                })));
+                    response: q.savedResponse || null
+                }));
+                setAnswers(restoredAnswers);
+
+                // Resume from the first unanswered question
+                const firstUnanswered = restoredAnswers.findIndex(a => !a.response);
+                if (firstUnanswered !== -1) {
+                    setCurrentQuestion(firstUnanswered);
+                } else {
+                    // All questions answered — go to last question so user can submit
+                    setCurrentQuestion(response.questions.length - 1);
+                }
             } else {
                 setError('Failed to load quiz questions');
             }
@@ -65,13 +76,20 @@ const InitialQuizPage = () => {
 
         const currentQ = questions[currentQuestion];
 
-        // Store the answer
+        // Store the answer locally
         const updatedAnswers = [...answers];
         updatedAnswers[currentQuestion] = {
             questionId: currentQ.id,
             response: selectedAnswer
         };
         setAnswers(updatedAnswers);
+
+        // Save answer to backend in background (fire-and-forget for instant UI)
+        quizService.submitAnswer({
+            paperId: paperId,
+            questionId: currentQ.id,
+            response: selectedAnswer
+        }).catch(err => console.error('Failed to save answer:', err));
 
         // Check if answer is correct for score tracking (optimistic, but backend overrides)
         if (selectedAnswer === currentQ.correctAnswer) {

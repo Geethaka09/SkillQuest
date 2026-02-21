@@ -152,6 +152,11 @@ export const quizService = {
         return response.data;
     },
 
+    submitAnswer: async (data) => {
+        const response = await api.post('/quiz/answer', data);
+        return response.data;
+    },
+
     completeQuiz: async (data) => {
         const response = await api.post('/quiz/complete', data);
         return response.data;

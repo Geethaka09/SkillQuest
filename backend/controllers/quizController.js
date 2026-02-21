@@ -51,6 +51,18 @@ const getInitialQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
 
+        // Verify user exists
+        const [userCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [userId]
+        );
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
         // Check if user already has an active or completed quiz paper
         const [existingPapers] = await pool.execute(
             'SELECT DISTINCT paper_ID FROM initial_question_paper WHERE student_ID = ? ORDER BY paper_ID DESC LIMIT 1',
@@ -80,16 +92,17 @@ const getInitialQuiz = async (req, res) => {
             paperId = nextId;
 
             // Define the balanced distribution
+            // Define the balanced distribution (Total: 20 questions)
             const distribution = [
-                { category: 'Analytical Thinking', difficulty: 'Easy', count: 7 },
-                { category: 'Analytical Thinking', difficulty: 'Moderate', count: 6 },
-                { category: 'Analytical Thinking', difficulty: 'Hard', count: 3 },
-                { category: 'Computational Thinking', difficulty: 'Easy', count: 7 },
-                { category: 'Computational Thinking', difficulty: 'Moderate', count: 7 },
-                { category: 'Computational Thinking', difficulty: 'Hard', count: 3 },
-                { category: 'Programming', difficulty: 'Easy', count: 6 },
-                { category: 'Programming', difficulty: 'Moderate', count: 7 },
-                { category: 'Programming', difficulty: 'Hard', count: 4 },
+                { category: 'Analytical Thinking', difficulty: 'Easy', count: 3 },
+                { category: 'Analytical Thinking', difficulty: 'Moderate', count: 2 },
+                { category: 'Analytical Thinking', difficulty: 'Hard', count: 2 },
+                { category: 'Computational Thinking', difficulty: 'Easy', count: 3 },
+                { category: 'Computational Thinking', difficulty: 'Moderate', count: 2 },
+                { category: 'Computational Thinking', difficulty: 'Hard', count: 2 },
+                { category: 'Programming', difficulty: 'Easy', count: 2 },
+                { category: 'Programming', difficulty: 'Moderate', count: 2 },
+                { category: 'Programming', difficulty: 'Hard', count: 2 },
             ];
 
             let allQuestions = [];
@@ -138,7 +151,8 @@ const getInitialQuiz = async (req, res) => {
                 difficulty: q.difficulty_rate?.trim(),
                 question: q.question?.trim(),
                 options: options,
-                correctAnswer: q.correct_answer?.trim()
+                correctAnswer: q.correct_answer?.trim(),
+                savedResponse: q.response || null // Previously saved answer for resume
             };
         });
 
@@ -173,6 +187,18 @@ const submitAnswer = async (req, res) => {
         const userId = req.user.id;
         const { paperId, questionId, response } = req.body;
 
+        // Verify user exists
+        const [userCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [userId]
+        );
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
         // Update the response in initial_question_paper
         await pool.execute(
             `UPDATE initial_question_paper 
@@ -201,6 +227,18 @@ const completeQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
         const { paperId, answers } = req.body;
+
+        // Verify user exists
+        const [userCheck] = await pool.execute(
+            'SELECT student_ID FROM student WHERE student_ID = ?',
+            [userId]
+        );
+        if (userCheck.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
 
         // If answers array is provided, save all responses
         if (answers && Array.isArray(answers)) {

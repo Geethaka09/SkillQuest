@@ -51,6 +51,12 @@ const getMetrics = async (req, res) => {
         });
     } catch (error) {
         console.error('RL Metrics Error:', error);
+        if (error.message === 'Student not found') {
+            return res.status(404).json({
+                success: false,
+                error: 'Student not found'
+            });
+        }
         res.status(500).json({
             success: false,
             error: 'Failed to get metrics'
