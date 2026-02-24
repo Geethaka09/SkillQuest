@@ -1,0 +1,1 @@
+ALTER TABLE student ADD COLUMN pending_email VARCHAR(255) DEFAULT NULL;

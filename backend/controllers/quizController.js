@@ -1,6 +1,14 @@
 const pool = require('../config/database');
 
 /**
+ * Quiz Controller (Initial Assessment)
+ * 
+ * Functional Requirements:
+ *   P9  — Present Initial Quiz: Identifies unclassified students, retrieves mandatory initial quiz.
+ *   P10 — Forward Quiz Results: Completed quiz data is sent to the Profile Classifier module.
+ */
+
+/**
  * Helper function to parse options from various formats
  */
 const parseOptions = (optionText) => {
@@ -322,6 +330,10 @@ const completeQuiz = async (req, res) => {
                 p_tol_easy, p_tol_med, p_tol_hard,
                 userId]
         );
+
+        // P10: Forward quiz results to the Profile Classifier
+        const { classifyStudent } = require('../services/ProfileClassifierService');
+        await classifyStudent(userId);
 
         // Get updated user data
         const [rows] = await pool.execute(

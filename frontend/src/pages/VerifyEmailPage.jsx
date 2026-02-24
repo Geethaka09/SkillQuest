@@ -6,9 +6,12 @@ import '../styles/login.css'; // Reuse login styles for consistent look
 const VerifyEmailPage = () => {
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
+    const type = searchParams.get('type'); // 'email-change' or null (account activation)
     const [status, setStatus] = useState('verifying'); // verifying, success, error
     const [message, setMessage] = useState('Verifying your email...');
     const hasFetched = useRef(false);
+
+    const isEmailChange = type === 'email-change';
 
     useEffect(() => {
         if (!token) {
@@ -22,9 +25,17 @@ const VerifyEmailPage = () => {
 
         const verify = async () => {
             try {
-                await authService.verifyEmail(token);
-                setStatus('success');
-                setMessage('Email verified successfully! You can now log in.');
+                if (isEmailChange) {
+                    // Email change verification
+                    await authService.verifyEmailChange(token);
+                    setStatus('success');
+                    setMessage('Your email has been updated successfully! Please log in with your new email.');
+                } else {
+                    // Account activation verification
+                    await authService.verifyEmail(token);
+                    setStatus('success');
+                    setMessage('Email verified successfully! You can now log in.');
+                }
             } catch (error) {
                 setStatus('error');
                 setMessage(error.response?.data?.message || 'Verification failed. Link may be expired.');
@@ -32,7 +43,7 @@ const VerifyEmailPage = () => {
         };
 
         verify();
-    }, [token]);
+    }, [token, isEmailChange]);
 
     return (
         <div className="login-page">
@@ -52,7 +63,7 @@ const VerifyEmailPage = () => {
                         <img src="/skillquest-logo.jpg" alt="SkillQuest" style={{ width: '60px', borderRadius: '12px' }} />
                     </div>
 
-                    <h2>Email Verification</h2>
+                    <h2>{isEmailChange ? 'Email Change Verification' : 'Email Verification'}</h2>
 
                     <div style={{ margin: '30px 0' }}>
                         {status === 'verifying' && (
@@ -93,3 +104,4 @@ const VerifyEmailPage = () => {
 };
 
 export default VerifyEmailPage;
+

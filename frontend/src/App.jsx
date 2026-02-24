@@ -76,6 +76,31 @@ function App() {
     };
   }, []);
 
+  // P20: 5-hour inactivity timer — auto-logout if no user interaction
+  useEffect(() => {
+    let timeout;
+    const INACTIVITY_LIMIT = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        if (authService.isAuthenticated()) {
+          authService.logout();
+          window.location.href = '/';
+        }
+      }, INACTIVITY_LIMIT);
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer(); // Start the timer on mount
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>

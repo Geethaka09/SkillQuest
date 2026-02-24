@@ -3,256 +3,30 @@ const GamificationService = require('../services/GamificationService');
 const RLService = require('../services/RLService');
 
 /**
- * Study Plan Controller
- * Manages the student's learning path, including module progression, unlocking logic, and quiz submissions.
+ * Training Session Controller
+ * 
+ * Functional Requirements:
+ *   P14 — Launch Interactive Training Session: System starts session, presents modules and quizzes.
+ *   P15 — Present Content and Provide Feedback: Delivers content and provides immediate feedback.
+ *   P16 — Monitor and Record Performance Data: RL Model records actions and time taken.
+ *   P17 — Complete and Log Session Data: Updates profile, marks module as completed.
  */
 
 /**
- * Get Student Progress
+ * Get Step Content (P14, P15)
  * 
- * Aggregates study plan data to render the dashboard or learning roadmap.
- * 
- * Logic:
- * 1. Groups modules by week.
- * 2. Calculates completion status (LOCKED, ACTIVE, COMPLETED).
- * 3. Handles Time-Gating: Weeks unlock sequentially (Week 1 = Day 0, Week 2 = Day 7, etc.).
- * 
- * @returns {Object} { totalModules, completedModules, percentComplete, currentModule, modules[] }
- */
-const getStudentProgress = async (req, res) => {
-    try {
-        const studentId = req.user.id;
-
-        // 1. Get aggregated stats per week (count DISTINCT step_IDs, not rows)
-        const [weekStats] = await pool.execute(
-            `SELECT 
-                week_number,
-                module_name,
-                COUNT(DISTINCT step_ID) as total_steps,
-                COUNT(DISTINCT CASE WHEN step_status = 'COMPLETED' THEN step_ID END) as completed_steps,
-                COUNT(DISTINCT CASE WHEN step_status = 'IN_PROGRESS' THEN step_ID END) as in_progress_steps
-             FROM study_plan 
-             WHERE student_ID = ?
-             GROUP BY week_number, module_name
-             ORDER BY week_number`,
-            [studentId]
-        );
-
-        if (weekStats.length === 0) {
-            return res.json({
-                success: true,
-                totalModules: 0,
-                completedModules: 0,
-                percentComplete: 0,
-                currentModule: null,
-                modules: []
-            });
-        }
-
-        // 2. Get the study plan start date (when plan was created)
-        const [startDateResult] = await pool.execute(
-            `SELECT MIN(start_date) as plan_start_date
-             FROM study_plan 
-             WHERE student_ID = ?`,
-            [studentId]
-        );
-
-        const planStartDate = startDateResult[0]?.plan_start_date
-            ? new Date(startDateResult[0].plan_start_date)
-            : new Date();
-
-        const today = new Date();
-        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-        // 3. Process modules and determine statuses
-        let modules = [];
-        let completedModules = 0;
-        let currentModule = null;
-
-        for (let i = 0; i < weekStats.length; i++) {
-            const week = weekStats[i];
-            const isAllCompleted = week.completed_steps === week.total_steps;
-            const hasInProgress = week.in_progress_steps > 0;
-            const stepsRemaining = week.total_steps - week.completed_steps;
-
-            // Calculate when this week should unlock based on start_date
-            // Week 1 unlocks immediately, Week 2 unlocks after 7 days, Week 3 after 14 days, etc.
-            const daysUntilUnlock = (week.week_number - 1) * 7;
-            const startTimestamp = planStartDate.getTime();
-            // Safety check for invalid dates
-            const validStart = isNaN(startTimestamp) ? Date.now() : startTimestamp;
-
-            const unlockDate = new Date(validStart + (daysUntilUnlock * ONE_DAY_MS));
-            const daysSincePlanStart = Math.floor((today - new Date(validStart)) / ONE_DAY_MS);
-            const isTimeUnlocked = daysSincePlanStart >= daysUntilUnlock;
-
-            // Determine module status
-            let status;
-            let daysRemaining = null;
-
-            if (isAllCompleted) {
-                status = 'COMPLETED';
-                completedModules++;
-            } else if (hasInProgress) {
-                // Has in-progress steps - currently active
-                status = 'ACTIVE';
-
-                // Set as current module if not already set
-                if (!currentModule) {
-                    currentModule = {
-                        weekNumber: week.week_number,
-                        name: week.module_name,
-                        totalSteps: week.total_steps,
-                        completedSteps: week.completed_steps,
-                        stepsRemaining: stepsRemaining
-                    };
-                }
-            } else if (isTimeUnlocked) {
-                // Time has passed, this week is now unlocked
-                status = 'ACTIVE';
-
-                if (!currentModule) {
-                    currentModule = {
-                        weekNumber: week.week_number,
-                        name: week.module_name,
-                        totalSteps: week.total_steps,
-                        completedSteps: week.completed_steps,
-                        stepsRemaining: stepsRemaining
-                    };
-                }
-            } else {
-                // Not enough time passed - still locked
-                status = 'LOCKED';
-                daysRemaining = daysUntilUnlock - daysSincePlanStart;
-            }
-
-            modules.push({
-                weekNumber: week.week_number,
-                name: week.module_name,
-                status: status,
-                totalSteps: week.total_steps,
-                completedSteps: week.completed_steps,
-                stepsRemaining: stepsRemaining,
-                daysRemaining: daysRemaining
-            });
-        }
-
-        const totalModules = weekStats.length;
-        const percentComplete = totalModules > 0
-            ? Math.round((completedModules / totalModules) * 100)
-            : 0;
-
-        res.json({
-            success: true,
-            totalModules,
-            completedModules,
-            percentComplete,
-            currentModule,
-            modules
-        });
-
-    } catch (error) {
-        console.error('Get student progress error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch progress data'
-        });
-    }
-};
-
-/**
- * Get Week Content
- * Fetches all learning steps (quizzes, readings) for a specific week.
- * 
- * @param {number} weekNumber
- */
-const getWeekContent = async (req, res) => {
-    try {
-        const studentId = req.user.id;
-        const weekNumber = parseInt(req.params.weekNumber);
-
-        // Get all steps for this week with learning content
-        const [steps] = await pool.execute(
-            `SELECT 
-                step_ID,
-                module_name,
-                gen_QID,
-                learning_content,
-                question,
-                options,
-                correct_answer,
-                step_status,
-                attempt_count
-             FROM study_plan 
-             WHERE student_ID = ? AND week_number = ?
-             ORDER BY step_ID, gen_QID`,
-            [studentId, weekNumber]
-        );
-
-        if (steps.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No content found for this week'
-            });
-        }
-
-        // Group by step_ID for better organization
-        const stepsGrouped = {};
-        steps.forEach(step => {
-            if (!stepsGrouped[step.step_ID]) {
-                // Ensure Step 1 is always accessible (if locked, show as in-progress)
-                let status = step.step_status;
-                if (step.step_ID === 1 && status === 'LOCKED') {
-                    status = 'IN_PROGRESS';
-                }
-
-                stepsGrouped[step.step_ID] = {
-                    stepId: step.step_ID,
-                    status: status,
-                    learningContent: step.learning_content,
-                    questions: []
-                };
-            }
-            stepsGrouped[step.step_ID].questions.push({
-                genQID: step.gen_QID,
-                question: step.question,
-                options: step.options,
-                correctAnswer: step.correct_answer,
-                attemptCount: step.attempt_count
-            });
-        });
-
-        res.json({
-            success: true,
-            weekNumber: weekNumber,
-            moduleName: steps[0].module_name,
-            steps: Object.values(stepsGrouped)
-        });
-
-    } catch (error) {
-        console.error('Get week content error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch week content'
-        });
-    }
-};
-
-/**
- * Get Step Content
  * Fetches a single step's content (learning material + questions).
  * 
- * Feature: RL Feedback Trigger
- * If `recId` (Recommendation ID) is present in query params, it signals that 
- * the student accepted a recommendation (e.g., clicked "Lets Go" on a bonus goal).
- * This endpoint will asynchronously send feedback to the RL API to record engagement (Reward +1).
+ * P14: Launches the training session for the given step.
+ * P15: Returns content for presentation and feedback.
+ * P16: If recId (Recommendation ID) is present, sends RL feedback asynchronously.
  */
 const getStepContent = async (req, res) => {
     try {
         const studentId = req.user.id;
         const weekNumber = parseInt(req.params.weekNumber);
         const stepId = parseInt(req.params.stepId);
-        const recommendationId = req.query.recId || null; // Optional: Get ID from query buffer
+        const recommendationId = req.query.recId || null;
 
         // Get step data including questions
         const [rows] = await pool.execute(
@@ -300,8 +74,8 @@ const getStepContent = async (req, res) => {
             questions: questions
         });
 
+        // ─── P16: Monitor and Record Performance Data ───
         // Trigger RL Feedback (User Returned = true)
-        // This endpoint acts as "Start Quiz" / "Engage with Step"
         // Fire-and-forget: we don't await this to avoid slowing down content load
         if (recommendationId) {
             RLService.sendFeedback(studentId, true, recommendationId)
@@ -323,18 +97,15 @@ const getStepContent = async (req, res) => {
 };
 
 /**
- * Submit Step Quiz
+ * Submit Step Quiz (P15, P16, P17)
  * 
  * Handles quiz submission, grading, and progression.
  * 
  * Flow:
- * 1. Grades the submission against correct answers in DB.
- * 2. If Passed (Score >= 60%):
- *    - Updates step status to 'COMPLETED'.
- *    - Unlocks next step.
- *    - Awards XP and updates Streaks via GamificationService.
- *    - Calls RL API to get personalized "After-Action Report" (e.g., Badge, Rank comparison).
- * 3. Returns result to frontend including any RL recommendation.
+ *   P15: Grades submission and provides immediate feedback (passed/failed, score).
+ *   P16: Records all answers in quiz_attempts table with timestamps for RL analysis.
+ *   P17: If passed — marks step COMPLETED, unlocks next step, awards XP, updates streak,
+ *        calls RL API for personalized After-Action Report (Badge, Rank, etc.).
  */
 const submitStepQuiz = async (req, res) => {
     try {
@@ -342,8 +113,6 @@ const submitStepQuiz = async (req, res) => {
         const { planId, weekNumber, stepId, startTime, answers } = req.body;
         console.log('Quiz submission payload:', req.body); // Debug log
         console.log('Using FIXED controller with start_date column'); // PROOF OF UPDATE CHECK
-        // answers = [{ genQID, response }]
-        // startTime = ISO timestamp from frontend when quiz started
 
         if (!planId) {
             console.error('Missing planId in submission');
@@ -404,8 +173,8 @@ const submitStepQuiz = async (req, res) => {
             attemptedAt = finishedAt;
         }
 
+        // ─── P16: Record Performance Data ───
         // Process each answer and insert into quiz_attempts
-        // ALL rows will have the SAME attempted_at and finished_at timestamps
         for (const answer of answers) {
             const correctAnswer = correctAnswersMap[answer.genQID];
             const isCorrect = answer.response === correctAnswer;
@@ -413,7 +182,6 @@ const submitStepQuiz = async (req, res) => {
             if (isCorrect) score++;
             else allCorrect = false;
 
-            // Insert into quiz_attempts with synchronized timestamps
             await pool.execute(
                 `INSERT INTO quiz_attempts 
                  (plan_id, week_number, step_ID, gen_QID, attempt_number, student_ID, user_response, is_correct, score, attempted_at, finished_at)
@@ -430,15 +198,14 @@ const submitStepQuiz = async (req, res) => {
             [currentAttempt, studentId, weekNumber, stepId]
         );
 
-        // Calculate Passed Status (>= 60%) using DB question count
+        // ─── P15: Provide Feedback — Calculate Pass/Fail ───
         const totalQuestions = questions.length;
         const percentage = totalQuestions > 0 ? (score / totalQuestions) : 0;
         const passed = percentage >= 0.6;
 
+        // ─── P17: Complete and Log Session Data ───
         if (passed) {
-            // Mark current step as COMPLETED with both timestamps
-            // started_at = frontend's startTime (when user clicked on step)
-            // completed_at = NOW() (when submit was processed)
+            // Mark current step as COMPLETED
             await pool.execute(
                 `UPDATE study_plan 
                  SET step_status = 'COMPLETED', 
@@ -466,7 +233,6 @@ const submitStepQuiz = async (req, res) => {
         }
 
         // Check if all steps in this week are now completed
-        // Use DISTINCT step_ID since each step has multiple question rows
         const [weekSteps] = await pool.execute(
             `SELECT 
                 COUNT(DISTINCT step_ID) as total,
@@ -477,16 +243,13 @@ const submitStepQuiz = async (req, res) => {
 
         const isWeekComplete = weekSteps[0].total > 0 && weekSteps[0].completed === weekSteps[0].total;
 
-        // If week is complete, record completion time for time-based unlock
+        // If week is complete, check for next week
         if (isWeekComplete && passed) {
-            // Check if next week exists and is locked
             const [nextWeekCheck] = await pool.execute(
                 `SELECT COUNT(*) as count FROM study_plan 
                  WHERE student_ID = ? AND week_number = ? AND step_status = 'LOCKED'`,
                 [studentId, weekNumber + 1]
             );
-
-            // Note: Next week will only unlock after 1 week has passed (handled in getStudentProgress)
         }
 
         // Check if next step exists for navigation
@@ -501,7 +264,7 @@ const submitStepQuiz = async (req, res) => {
             nextStepExists = nextStepCheck[0].count > 0;
         }
 
-        // Call RL API to get personalized action (only if passed)
+        // ─── P16/P17: RL After-Action Report ───
         let rlRecommendation = null;
         if (passed) {
             try {
@@ -510,7 +273,6 @@ const submitStepQuiz = async (req, res) => {
                 if (rlResponse.success && rlResponse.recommendation) {
                     const actionCode = rlResponse.recommendation.action_code;
 
-                    // Handle BADGE_INJECTION
                     if (actionCode === 'BADGE_INJECTION') {
                         const badge = await RLService.selectRandomBadge(studentId);
                         if (badge) {
@@ -525,7 +287,6 @@ const submitStepQuiz = async (req, res) => {
                             };
                         }
                     }
-                    // Handle RANK_COMPARISON
                     else if (actionCode === 'RANK_COMPARISON') {
                         const rankInfo = await RLService.calculateStudentRank(studentId);
                         rlRecommendation = {
@@ -534,7 +295,6 @@ const submitStepQuiz = async (req, res) => {
                             rank_text: rankInfo.rank_text
                         };
                     }
-                    // Other actions (MULTIPLIER_BOOST, EXTRA_GOALS, STANDARD_XP)
                     else {
                         rlRecommendation = {
                             action_code: actionCode,
@@ -545,7 +305,6 @@ const submitStepQuiz = async (req, res) => {
                 }
             } catch (error) {
                 console.error('❌ RL trigger error:', error);
-                // Don't fail quiz submission if RL fails
             }
         } else {
             console.log('⚠️ Skipping RL: Quiz not passed');
@@ -573,9 +332,9 @@ const submitStepQuiz = async (req, res) => {
         console.error('Submit step quiz error details:', error);
         res.status(500).json({
             success: false,
-            message: `Failed to submit quiz: ${error.message}` // Expose error for debugging
+            message: `Failed to submit quiz: ${error.message}`
         });
     }
 };
 
-module.exports = { getStudentProgress, getWeekContent, getStepContent, submitStepQuiz };
+module.exports = { getStepContent, submitStepQuiz };

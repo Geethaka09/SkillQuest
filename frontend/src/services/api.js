@@ -18,6 +18,24 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+// P19/P20: Response Interceptor — auto-redirect on expired/invalid token
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Token expired or invalid — force logout and redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            // Only redirect if not already on login/register/public pages
+            const publicPaths = ['/', '/login', '/register', '/verify-email', '/forgot-password'];
+            if (!publicPaths.includes(window.location.pathname) && !window.location.pathname.startsWith('/reset-password')) {
+                window.location.href = '/';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 /**
  * Authentication Service
  * Handles user sessions, registration, and profile management.
@@ -112,15 +130,15 @@ export const authService = {
 
     changeEmail: async (data) => {
         const response = await api.put('/auth/change-email', data);
-        if (response.data.success && response.data.email) {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user) {
-                user.email = response.data.email;
-                localStorage.setItem('user', JSON.stringify(user));
-            }
-        }
+        // Email is now pending verification — don't update localStorage yet
         return response.data;
     },
+
+    verifyEmailChange: async (token) => {
+        const response = await api.post('/auth/verify-email-change', { token });
+        return response.data;
+    },
+
 
     deleteAccount: async () => {
         const response = await api.delete('/auth/delete-account');
@@ -265,6 +283,27 @@ export const rlService = {
 
     sendFeedback: async (userReturned) => {
         const response = await api.post('/rl/feedback', { userReturned });
+        return response.data;
+    }
+};
+/**
+ * Profile Classification Service (P10/P11/P12)
+ * Handles student proficiency classification based on quiz scores.
+ */
+export const profileService = {
+    /**
+     * P10 + P11: Trigger classification after quiz completion
+     */
+    classify: async () => {
+        const response = await api.post('/profile/classify');
+        return response.data;
+    },
+
+    /**
+     * P12: Get the student's profile classification report
+     */
+    getReport: async () => {
+        const response = await api.get('/profile/report');
         return response.data;
     }
 };

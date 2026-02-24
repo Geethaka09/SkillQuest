@@ -3,6 +3,10 @@ const pool = require('../config/database');
 /**
  * Analytics Controller
  * Powers the "Performance Analytics" page with data visualizations.
+ * 
+ * Functional Requirements:
+ *   P18 — Retrieve and Display Analytics: Pulls up-to-date learning data to show
+ *         a comprehensive dashboard of progress (weekly engagement, XP velocity).
  */
 
 /**

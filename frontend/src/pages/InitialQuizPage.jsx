@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService, quizService } from '../services/api';
+import { authService, quizService, profileService } from '../services/api';
 import Layout from '../components/Layout';
 import '../styles/initialQuiz.css';
 
@@ -13,7 +13,8 @@ import '../styles/initialQuiz.css';
  * 1. Fetch questions from backend.
  * 2. Collect user answers.
  * 3. Submit full payload to `quizService`.
- * 4. Update user status locally (so they don't get redirected back here) and display results.
+ * 4. P10: Forward results to Profile Classifier via `profileService.classify()`.
+ * 5. P12: Display the profile classification report.
  */
 const InitialQuizPage = () => {
     const navigate = useNavigate();
@@ -28,6 +29,7 @@ const InitialQuizPage = () => {
     const [score, setScore] = useState(0);
 
     const [quizResults, setQuizResults] = useState(null);
+    const [profileReport, setProfileReport] = useState(null);
 
     useEffect(() => {
         fetchQuestions();
@@ -120,8 +122,19 @@ const InitialQuizPage = () => {
                 // Update user in localStorage with new status
                 localStorage.setItem('user', JSON.stringify(response.user));
 
-                // Show results instead of redirecting immediately
+                // Show results
                 setQuizResults(response.results);
+
+                // P10: Forward results to Profile Classifier (separate service)
+                try {
+                    const classifyResponse = await profileService.classify();
+                    if (classifyResponse.success) {
+                        setProfileReport(classifyResponse.classification);
+                    }
+                } catch (classifyErr) {
+                    console.error('Profile classification error:', classifyErr);
+                    // Non-blocking — quiz still completes even if classification fails
+                }
             } else {
                 setError('Failed to complete quiz. Please try again.');
             }
@@ -133,22 +146,82 @@ const InitialQuizPage = () => {
         }
     };
 
+    // P12: Profile Classification Report Screen
     if (quizResults) {
+        const levelColors = {
+            beginner: '#ef4444',
+            intermediate: '#f59e0b',
+            advanced: '#22c55e'
+        };
+        const levelEmoji = {
+            beginner: '🌱',
+            intermediate: '📚',
+            advanced: '🚀'
+        };
+        const currentLevel = profileReport?.level || 'beginner';
+        const totalQuestions = questions.length;
+
         return (
             <Layout>
                 <div className="quiz-container">
                     <div className="quiz-card results-card">
                         <div className="results-header">
                             <h2>Quiz Completed!</h2>
-                            <p>Here is your total score</p>
+                            <p>Your Profile Classification Report</p>
                         </div>
 
+                        {/* Level Badge */}
+                        {profileReport && (
+                            <div className="profile-level-badge" style={{ backgroundColor: levelColors[currentLevel] + '20', border: `2px solid ${levelColors[currentLevel]}` }}>
+                                <span className="level-emoji">{levelEmoji[currentLevel]}</span>
+                                <span className="level-text" style={{ color: levelColors[currentLevel] }}>
+                                    {currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Overall Score */}
                         <div className="score-circle-outer">
                             <div className="score-circle-inner">
                                 <span className="score-value">{quizResults.total_score}</span>
-                                <span className="score-label">Total Score</span>
+                                <span className="score-label">out of {totalQuestions}</span>
                             </div>
                         </div>
+
+                        {/* Weighted Score from Profile Classifier */}
+                        {profileReport && (
+                            <p className="weighted-score-text">
+                                Weighted Score: <strong>{profileReport.weightedPercent}%</strong>
+                            </p>
+                        )}
+
+                        {/* Per-Category Breakdown */}
+                        {profileReport && (
+                            <div className="category-breakdown">
+                                <h3>Score Breakdown</h3>
+                                {[
+                                    { name: 'Analytical Thinking', score: profileReport.scores.at_score, color: '#6366f1' },
+                                    { name: 'Computational Thinking', score: profileReport.scores.ct_score, color: '#06b6d4' },
+                                    { name: 'Programming', score: profileReport.scores.p_score, color: '#8b5cf6' },
+                                ].map((cat) => (
+                                    <div key={cat.name} className="category-row">
+                                        <div className="category-info">
+                                            <span className="category-name">{cat.name}</span>
+                                            <span className="category-score">{cat.score}</span>
+                                        </div>
+                                        <div className="category-bar-bg">
+                                            <div
+                                                className="category-bar-fill"
+                                                style={{
+                                                    width: `${totalQuestions > 0 ? (cat.score / Math.ceil(totalQuestions / 3)) * 100 : 0}%`,
+                                                    backgroundColor: cat.color
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         <button
                             className="submit-answer-btn"

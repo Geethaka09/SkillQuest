@@ -48,8 +48,10 @@ const RegisterPage = () => {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters');
+        // P2: Password must be at least 8 characters with uppercase, lowercase, number, and symbol
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/;
+        if (!passwordRegex.test(formData.password)) {
+            setError('Password must be at least 8 characters with uppercase, lowercase, number, and symbol');
             setLoading(false);
             return;
         }

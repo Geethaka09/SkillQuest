@@ -1,0 +1,209 @@
+[
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/login",
+    "status": 401,
+    "ok": true,
+    "data": {
+      "success": false,
+      "message": "Invalid email or password"
+    },
+    "hasToken": false
+  },
+  {
+    "fr": "FR1",
+    "ep": "GET /health",
+    "status": 200,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/register",
+    "status": 429,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/verify-email",
+    "status": 400,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/verify-email-change",
+    "status": 400,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/resend-verification",
+    "status": 404,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/forgot-password",
+    "status": 404,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/reset-password/fake",
+    "status": 400,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "GET /auth/me",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "GET /auth/account-info",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "GET /auth/personal-bests",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR1",
+    "ep": "POST /auth/log-exit",
+    "status": 400,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR2",
+    "ep": "GET /quiz/initial",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR2",
+    "ep": "POST /quiz/answer",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR2",
+    "ep": "POST /quiz/complete",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR2",
+    "ep": "POST /profile/classify",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR2",
+    "ep": "GET /profile/report",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR3",
+    "ep": "GET /study-plan/progress",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR3",
+    "ep": "GET /study-plan/week/1",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR3",
+    "ep": "GET /study-plan/step/1/1",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR3",
+    "ep": "POST /study-plan/submit-quiz",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR4",
+    "ep": "GET /analytics/weekly-engagement",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "FR4",
+    "ep": "GET /analytics/xp-velocity",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "GAMIFY",
+    "ep": "GET /gamification/dashboard",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "GAMIFY",
+    "ep": "GET /gamification/daily-goals",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "GAMIFY",
+    "ep": "GET /gamification/badges",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "RL",
+    "ep": "GET /rl/recommend",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "RL",
+    "ep": "GET /rl/metrics",
+    "status": 401,
+    "ok": true,
+    "error": null
+  },
+  {
+    "fr": "RL",
+    "ep": "POST /rl/feedback",
+    "status": 401,
+    "ok": true,
+    "error": null
+  }
+]
