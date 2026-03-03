@@ -6,6 +6,7 @@ const RL_API_URL = process.env.RL_API_URL;
 
 async function testRLAPI() {
     const sessionDuration = 300;
+    const expectedTime = 600; // 10 mins per quiz/module (teammate's formula)
     const testMetrics = {
         user_id: "test123",
         level: "Beginner",
@@ -18,7 +19,7 @@ async function testRLAPI() {
         total_badges: 0,
         total_badges_count: 0,              // Required by updated API
         session_duration: sessionDuration,
-        duration_norm: sessionDuration / 3600, // Required: normalized 0-1
+        duration_norm: Math.min(1.5, sessionDuration / expectedTime), // teammate: min(raw/600, 1.5)
         quiz_score: 80,
         consecutive_completions: 2,
         consecutive: 2                      // Required by updated API

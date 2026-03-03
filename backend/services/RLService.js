@@ -149,8 +149,9 @@ class RLService {
             ? student.level.charAt(0).toUpperCase() + student.level.slice(1)
             : 'Beginner';
 
-        // Normalize session duration to 0-1 range (max 1 hour = 3600s)
-        const durationNorm = Math.min(1.0, Math.max(0, sessionDuration) / 3600);
+        // Normalize session duration: expected = 600s (10 mins per quiz/module), cap at 1.5
+        const expectedTime = 600;
+        const durationNorm = Math.min(1.5, Math.max(0, sessionDuration) / expectedTime);
 
         return {
             user_id: studentId,
@@ -172,33 +173,43 @@ class RLService {
     }
 
     /**
-     * Call RL API to get action recommendation
-     * @param {string} studentId - Student ID
-     * @returns {Promise<Object>} RL API response with recommendation
+     * Call RL API to get action recommendation.
+     * The updated API returns only action_id (0-4) + interaction_id.
+     * We map action_id → action_code/name here so the frontend keeps working.
      */
     static async getRecommendation(studentId) {
+        // Map action_id numbers to codes the frontend uses
+        const ACTION_MAP = {
+            0: { action_code: 'STANDARD_XP', action_name: 'Standard XP', description: 'Award normal XP points for activity' },
+            1: { action_code: 'MULTIPLIER_BOOST', action_name: 'Multiplier Boost', description: 'Apply XP multiplier (2x, 3x) next activity' },
+            2: { action_code: 'BADGE_INJECTION', action_name: 'Badge Injection', description: 'Award a surprise badge to boost motivation' },
+            3: { action_code: 'RANK_COMPARISON', action_name: 'Rank Comparison', description: "Show 'X points to reach Top N' message" },
+            4: { action_code: 'EXTRA_GOALS', action_name: 'Extra Goals', description: 'Set additional achievable micro-goals' }
+        };
+
         try {
-            // Get all metrics
             const metrics = await this.getStudentMetrics(studentId);
 
-            // Call RL API
             const response = await axios.post(`${RL_API_URL}/predict`, metrics, {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000 // Increased to 30s for Azure cold start
+                timeout: 30000
             });
 
-            return response.data;
+            const { action_id, interaction_id, risk_score } = response.data;
+            const action = ACTION_MAP[action_id] || ACTION_MAP[0];
+
+            return {
+                success: true,
+                interaction_id,   // Needed by frontend to close the RL loop via /feedback
+                risk_score,
+                recommendation: action
+            };
         } catch (error) {
             console.error('RL API Error:', error.message);
             return {
                 success: false,
                 error: error.message,
-                // Default fallback action
-                recommendation: {
-                    action_code: 'STANDARD_XP',
-                    action_name: 'Standard XP',
-                    description: 'Award normal XP points'
-                }
+                recommendation: ACTION_MAP[0] // Fallback: Standard XP
             };
         }
     }
@@ -206,20 +217,15 @@ class RLService {
     /**
      * Send feedback to RL API for training
      * @param {string} studentId - Student ID
-     * @param {boolean} userReturned - Whether user came back
+     * @param {boolean} engaged - Whether user engaged with the recommendation
+     * @param {string|null} interactionId - The interaction_id returned from /predict
      * @returns {Promise<Object>} Feedback response
      */
-    static async sendFeedback(studentId, userReturned, recommendationId = null) {
+    static async sendFeedback(studentId, engaged, interactionId = null) {
         try {
-            const newUserData = userReturned
-                ? await this.getStudentMetrics(studentId)
-                : null;
-
             const response = await axios.post(`${RL_API_URL}/feedback`, {
-                user_id: studentId,
-                user_returned: userReturned ? 1 : 0, // Ensure integer for compatibility
-                recommendation_id: recommendationId, // Required by API
-                new_user_data: newUserData
+                interaction_id: interactionId,   // ID returned from /predict
+                engaged: engaged ? true : false  // Boolean: did the user engage?
             }, {
                 headers: { 'Content-Type': 'application/json' },
                 timeout: 5000

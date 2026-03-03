@@ -50,7 +50,7 @@ export const authService = {
             if (lastRLUser && lastRLUser !== newUserId) {
                 localStorage.removeItem('cachedRLState');
                 localStorage.removeItem('activeRLBoost');
-                localStorage.removeItem('recommendationId');
+                localStorage.removeItem('interactionId');
             }
             localStorage.setItem('lastRLUser', newUserId);
 
@@ -281,8 +281,10 @@ export const rlService = {
         return response.data;
     },
 
-    sendFeedback: async (userReturned) => {
-        const response = await api.post('/rl/feedback', { userReturned });
+    sendFeedback: async (engaged, interactionId) => {
+        // engaged: boolean (true = user acted on the recommendation)
+        // interactionId: the interaction_id returned from /rl/recommend
+        const response = await api.post('/rl/feedback', { engaged, interactionId });
         return response.data;
     }
 };

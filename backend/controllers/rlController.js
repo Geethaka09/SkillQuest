@@ -76,9 +76,10 @@ const getMetrics = async (req, res) => {
 const sendFeedback = async (req, res) => {
     try {
         const studentId = req.user.id;
-        const { userReturned } = req.body;
+        // Frontend must send: { engaged: true/false, interactionId: "<id from /recommend>" }
+        const { engaged, interactionId } = req.body;
 
-        const result = await RLService.sendFeedback(studentId, userReturned);
+        const result = await RLService.sendFeedback(studentId, engaged, interactionId);
 
         res.json(result);
     } catch (error) {
