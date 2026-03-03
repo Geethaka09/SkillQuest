@@ -149,6 +149,9 @@ class RLService {
             ? student.level.charAt(0).toUpperCase() + student.level.slice(1)
             : 'Beginner';
 
+        // Normalize session duration to 0-1 range (max 1 hour = 3600s)
+        const durationNorm = Math.min(1.0, Math.max(0, sessionDuration) / 3600);
+
         return {
             user_id: studentId,
             level,
@@ -159,9 +162,12 @@ class RLService {
             modules_done: modulesDone,
             recent_points: recentPoints,
             total_badges: totalBadges,
+            total_badges_count: totalBadges,           // New field required by updated RL API
             session_duration: Math.max(0, sessionDuration),
+            duration_norm: durationNorm,               // New field: session_duration normalized 0-1
             quiz_score: quizScore,
-            consecutive_completions: consecutiveCompletions
+            consecutive_completions: consecutiveCompletions,
+            consecutive: consecutiveCompletions        // New field required by updated RL API
         };
     }
 

@@ -1,0 +1,151 @@
+﻿{
+    "openapi":  "3.1.0",
+    "info":  {
+                 "title":  "SkillQuest AI Engine",
+                 "version":  "0.1.0"
+             },
+    "paths":  {
+                  "/api/generate-lesson":  {
+                                               "post":  {
+                                                            "summary":  "Generate Lesson",
+                                                            "operationId":  "generate_lesson_api_generate_lesson_post",
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/UserParameters"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                            },
+                                                                                "required":  true
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Successful Response",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      },
+                                                                              "422":  {
+                                                                                          "description":  "Validation Error",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      }
+                                                                          },
+                                                            "security":  [
+                                                                             {
+                                                                                 "APIKeyHeader":  [
+
+                                                                                                  ]
+                                                                             }
+                                                                         ]
+                                                        }
+                                           }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "HTTPValidationError":  {
+                                                                   "properties":  {
+                                                                                      "detail":  {
+                                                                                                     "items":  {
+                                                                                                                   "$ref":  "#/components/schemas/ValidationError"
+                                                                                                               },
+                                                                                                     "type":  "array",
+                                                                                                     "title":  "Detail"
+                                                                                                 }
+                                                                                  },
+                                                                   "type":  "object",
+                                                                   "title":  "HTTPValidationError"
+                                                               },
+                                       "UserParameters":  {
+                                                              "properties":  {
+                                                                                 "target_topic":  {
+                                                                                                      "type":  "string",
+                                                                                                      "title":  "Target Topic"
+                                                                                                  },
+                                                                                 "proficiency":  {
+                                                                                                     "type":  "string",
+                                                                                                     "title":  "Proficiency"
+                                                                                                 },
+                                                                                 "cognitive_difficulty":  {
+                                                                                                              "type":  "string",
+                                                                                                              "title":  "Cognitive Difficulty"
+                                                                                                          },
+                                                                                 "historical_gaps":  {
+                                                                                                         "type":  "string",
+                                                                                                         "title":  "Historical Gaps"
+                                                                                                     },
+                                                                                 "gamification":  {
+                                                                                                      "type":  "string",
+                                                                                                      "title":  "Gamification"
+                                                                                                  }
+                                                                             },
+                                                              "type":  "object",
+                                                              "required":  [
+                                                                               "target_topic",
+                                                                               "proficiency",
+                                                                               "cognitive_difficulty",
+                                                                               "historical_gaps",
+                                                                               "gamification"
+                                                                           ],
+                                                              "title":  "UserParameters"
+                                                          },
+                                       "ValidationError":  {
+                                                               "properties":  {
+                                                                                  "loc":  {
+                                                                                              "items":  {
+                                                                                                            "anyOf":  [
+                                                                                                                          {
+                                                                                                                              "type":  "string"
+                                                                                                                          },
+                                                                                                                          {
+                                                                                                                              "type":  "integer"
+                                                                                                                          }
+                                                                                                                      ]
+                                                                                                        },
+                                                                                              "type":  "array",
+                                                                                              "title":  "Location"
+                                                                                          },
+                                                                                  "msg":  {
+                                                                                              "type":  "string",
+                                                                                              "title":  "Message"
+                                                                                          },
+                                                                                  "type":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Error Type"
+                                                                                           },
+                                                                                  "input":  {
+                                                                                                "title":  "Input"
+                                                                                            },
+                                                                                  "ctx":  {
+                                                                                              "type":  "object",
+                                                                                              "title":  "Context"
+                                                                                          }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "loc",
+                                                                                "msg",
+                                                                                "type"
+                                                                            ],
+                                                               "title":  "ValidationError"
+                                                           }
+                                   },
+                       "securitySchemes":  {
+                                               "APIKeyHeader":  {
+                                                                    "type":  "apiKey",
+                                                                    "in":  "header",
+                                                                    "name":  "X-API-Key"
+                                                                }
+                                           }
+                   }
+}

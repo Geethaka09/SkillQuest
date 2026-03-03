@@ -38,6 +38,9 @@ const analyticsRoutes = require('./routes/analytics');         // P18
 const gamificationRoutes = require('./routes/gamification');   // Supporting
 const rlRoutes = require('./routes/rl');                       // Supporting (RL)
 
+// AI Content Generation
+const contentGenerationRoutes = require('./routes/contentGeneration'); // P13: AI Content
+
 const app = express();
 
 // ==========================================
@@ -102,6 +105,9 @@ app.use('/api/study-plan', trainingSessionRoutes); // P14-P17: Training Sessions
 app.use('/api/analytics', analyticsRoutes);   // P18: Analytics
 app.use('/api/gamification', gamificationRoutes); // Supporting: Gamification
 app.use('/api/rl', rlRoutes);                 // Supporting: RL Recommendations
+
+// AI Content Generation
+app.use('/api/content', contentGenerationRoutes); // P13: AI Content Generation
 
 // Health Check Endpoint
 // Used by monitoring services (or manual checks) to verify server status

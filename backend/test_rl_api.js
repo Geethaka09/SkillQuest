@@ -5,6 +5,7 @@ const axios = require('axios');
 const RL_API_URL = process.env.RL_API_URL;
 
 async function testRLAPI() {
+    const sessionDuration = 300;
     const testMetrics = {
         user_id: "test123",
         level: "Beginner",
@@ -15,9 +16,12 @@ async function testRLAPI() {
         modules_done: 2,
         recent_points: 100,
         total_badges: 0,
-        session_duration: 300,
+        total_badges_count: 0,              // Required by updated API
+        session_duration: sessionDuration,
+        duration_norm: sessionDuration / 3600, // Required: normalized 0-1
         quiz_score: 80,
-        consecutive_completions: 2
+        consecutive_completions: 2,
+        consecutive: 2                      // Required by updated API
     };
 
     try {
