@@ -1,0 +1,15 @@
+plan_id | int
+student_ID | varchar(10)
+week_number | int
+module_name | varchar(100)
+step_ID | int
+step_name | varchar(255)
+gen_QID | varchar(50)
+learning_content | text
+question | text
+options | text
+correct_answer | text
+step_status | enum('LOCKED','IN_PROGRESS','RETRY_NEEDED','COMPLETED','FAILED_MAX_ATTEMPTS')
+attempt_count | int
+start_date | timestamp
+completed_at | timestamp

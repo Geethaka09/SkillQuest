@@ -1,0 +1,20 @@
+[
+  {
+    "student_ID": "S0001",
+    "week_number": 2,
+    "module_name": "Analytical Thinking: Pattern Recognition",
+    "step_status": "IN_PROGRESS"
+  },
+  {
+    "student_ID": "S0001",
+    "week_number": 3,
+    "module_name": "Computational Thinking: Algorithm Design",
+    "step_status": "IN_PROGRESS"
+  },
+  {
+    "student_ID": "S0001",
+    "week_number": 4,
+    "module_name": "Mixed: Combine Programming + Analytical + Computational exercises",
+    "step_status": "IN_PROGRESS"
+  }
+]
