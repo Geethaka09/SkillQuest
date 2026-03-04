@@ -1,0 +1,48 @@
+[dotenv@17.2.3] injecting env (16) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+Testing PlanGeneratorService for S0001...
+✅ Connected to Azure MySQL Database
+[PlanGen] Requesting plan for S0001 with payload: {"scores":[5,0,0],"status":1,"user_level":"intermediate"}
+[PlanGen] ✅ Plan generated successfully
+Result:
+{
+  "status": "success",
+  "ai_priority_ranking": [
+    "Computational Thinking",
+    "Programming",
+    "Analytical Thinking",
+    "Mixed"
+  ],
+  "weekly_plan": {
+    "Day 1": {
+      "Category": "Computational Thinking",
+      "Topic": "Flowcharts & Pseudocode",
+      "Level": "intermediate",
+      "Status": "Returning Student"
+    },
+    "Day 2": {
+      "Category": "Computational Thinking",
+      "Topic": "Decomposition Basics",
+      "Level": "intermediate",
+      "Status": "Returning Student"
+    },
+    "Day 3": {
+      "Category": "Programming",
+      "Topic": "Variables & Data Types",
+      "Level": "intermediate",
+      "Status": "Returning Student"
+    },
+    "Day 4": {
+      "Category": "Analytical Thinking",
+      "Topic": "Pattern Recognition",
+      "Level": "intermediate",
+      "Status": "Returning Student"
+    },
+    "Day 5": {
+      "Category": "Mixed",
+      "Topic": "Combined Logic and Coding Challenges",
+      "Level": "intermediate",
+      "Status": "Returning Student"
+    }
+  }
+}
+^C

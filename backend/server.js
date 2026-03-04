@@ -40,6 +40,7 @@ const rlRoutes = require('./routes/rl');                       // Supporting (RL
 
 // AI Content Generation
 const contentGenerationRoutes = require('./routes/contentGeneration'); // P13: AI Content
+const planGeneratorRoutes = require('./routes/planGenerator'); // External Plan Generator API
 
 const app = express();
 
@@ -108,6 +109,7 @@ app.use('/api/rl', rlRoutes);                 // Supporting: RL Recommendations
 
 // AI Content Generation
 app.use('/api/content', contentGenerationRoutes); // P13: AI Content Generation
+app.use('/api/plan-generator', planGeneratorRoutes); // External Plan Generator API
 
 // Health Check Endpoint
 // Used by monitoring services (or manual checks) to verify server status
