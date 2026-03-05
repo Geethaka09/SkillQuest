@@ -182,7 +182,7 @@ class ContentGenerationService {
         // Parse numbered questions from quiz markdown:
         // Format: "1. **Question text?**\n   - Correct Answer: X\n   - Distractors: A, B, C."
         const questions = [];
-        const qBlocks = quizSection.split(/\n\d+\.\s+\*\*/).filter(b => b.trim());
+        const qBlocks = quizSection.split(/\n+(?:###\s*)?\d+\.\s+(?:\*\*)?/).filter(b => b.trim());
         for (const block of qBlocks) {
             const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
             const questionText = lines[0].replace(/\*\*/g, '').replace(/[?]\s*$/, '?').trim();
@@ -205,10 +205,9 @@ class ContentGenerationService {
 
         console.log(`[ContentGen] Parsed ${questions.length} questions from AI response`);
 
-        // --- Get next plan_id for this student ---
+        // --- Get next globally unique plan_id ---
         const [planIdResult] = await pool.execute(
-            'SELECT MAX(plan_id) as maxPlanId FROM study_plan WHERE student_ID = ?',
-            [studentId]
+            'SELECT MAX(plan_id) as maxPlanId FROM study_plan'
         );
         const planId = (planIdResult[0].maxPlanId || 0) + 1;
 
@@ -218,15 +217,7 @@ class ContentGenerationService {
         let rowsInserted = 0;
 
         if (questions.length === 0) {
-            // No questions parsed — save as content-only row
-            await pool.execute(
-                `INSERT INTO study_plan
-                 (plan_id, student_ID, week_number, step_ID, module_name, step_name, gen_QID,
-                  learning_content, question, options, correct_answer, step_status, attempt_count, start_date)
-                 VALUES (?, ?, ?, ?, ?, ?, 1, ?, '', '[]', '', ?, 0, NOW())`,
-                [planId, studentId, weekNumber, stepId, moduleName, topic, learningContent, status]
-            );
-            rowsInserted++;
+            throw new Error('AI Engine failed to generate any valid questions. Content discarded.');
         } else {
             for (let qi = 0; qi < questions.length; qi++) {
                 const q = questions[qi];
@@ -245,6 +236,165 @@ class ContentGenerationService {
 
         console.log(`[ContentGen] ✅ Inserted ${rowsInserted} rows into study_plan (student: ${studentId}, week: ${weekNumber}, step: ${stepId}, planId: ${planId})`);
         return { rowsInserted, weekNumber, moduleName, planId, questionsStored: questions.length };
+    }
+
+    /**
+     * Fills content for a single step that already exists in study_plan.
+     * 
+     * Flow:
+     * 1. Read the existing placeholder row to get step_name (topic) and module_name
+     * 2. Call AI Engine to generate lesson + quiz
+     * 3. Parse markdown into learning_content and questions
+     * 4. DELETE the existing placeholder row(s) for this step
+     * 5. INSERT new rows (one per question) with the generated content
+     *
+     * @param {string} studentId
+     * @param {number} weekNumber
+     * @param {number} stepId
+     * @param {number} planId
+     * @returns {Promise<Object>} { weekNumber, stepId, questionsStored }
+     */
+    static async fillStepContent(studentId, weekNumber, stepId, planId) {
+        // 1. Read existing row to get topic and module name
+        const [existing] = await pool.execute(
+            `SELECT step_name, module_name, step_status 
+             FROM study_plan 
+             WHERE student_ID = ? AND plan_id = ? AND week_number = ? AND step_ID = ?
+             LIMIT 1`,
+            [studentId, planId, weekNumber, stepId]
+        );
+
+        if (existing.length === 0) {
+            throw new Error(`No study_plan row found for week ${weekNumber}, step ${stepId}`);
+        }
+
+        const { step_name: topic, module_name: moduleName, step_status: currentStatus } = existing[0];
+
+        console.log(`[ContentGen] Filling content for Week ${weekNumber}, Step ${stepId}: "${topic}"`);
+
+        // 2. Call AI Engine
+        const aiResponse = await this.generateContent(studentId, topic, moduleName);
+
+        // 3. Parse AI response
+        let markdownText = '';
+        if (aiResponse.status === 'success' && typeof aiResponse.data === 'string') {
+            markdownText = aiResponse.data;
+        } else if (typeof aiResponse === 'string') {
+            markdownText = aiResponse;
+        } else if (aiResponse.data && typeof aiResponse.data === 'string') {
+            markdownText = aiResponse.data;
+        } else {
+            markdownText = JSON.stringify(aiResponse);
+        }
+
+        const quizSplit = markdownText.split(/##\s*Quiz[:\s]/i);
+        const learningContent = quizSplit[0].trim();
+        const quizSection = quizSplit[1] || '';
+
+        // Parse questions
+        const questions = [];
+        const qBlocks = quizSection.split(/\n+(?:###\s*)?\d+\.\s+(?:\*\*)?/).filter(b => b.trim());
+        for (const block of qBlocks) {
+            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+            const questionText = lines[0].replace(/\*\*/g, '').replace(/[?]\s*$/, '?').trim();
+
+            const answerLine = lines.find(l => /^-?\s*Correct\s*Answer:/i.test(l));
+            const distractorLine = lines.find(l => /^-?\s*Distractors?:/i.test(l));
+
+            if (!questionText || !answerLine) continue;
+
+            const correctAnswer = answerLine.replace(/^-?\s*Correct\s*Answer:\s*/i, '').replace(/`/g, '').trim();
+            const distractors = distractorLine
+                ? distractorLine.replace(/^-?\s*Distractors?:\s*/i, '').split(',').map(d => d.trim().replace(/\.$/, ''))
+                : [];
+
+            const options = [correctAnswer, ...distractors].sort(() => Math.random() - 0.5);
+            questions.push({ question: questionText, options, correct_answer: correctAnswer });
+        }
+
+        console.log(`[ContentGen] Parsed ${questions.length} questions for "${topic}"`);
+
+        // 4. Delete existing placeholder row(s) for this step
+        await pool.execute(
+            `DELETE FROM study_plan 
+             WHERE student_ID = ? AND plan_id = ? AND week_number = ? AND step_ID = ?`,
+            [studentId, planId, weekNumber, stepId]
+        );
+
+        // 5. Insert new rows with content
+        let rowsInserted = 0;
+
+        if (questions.length === 0) {
+            throw new Error('AI Engine failed to generate any valid questions. Content discarded.');
+        } else {
+            for (let qi = 0; qi < questions.length; qi++) {
+                const q = questions[qi];
+                const optionsStr = JSON.stringify(q.options);
+                await pool.execute(
+                    `INSERT INTO study_plan
+                     (plan_id, student_ID, week_number, step_ID, module_name, step_name, gen_QID,
+                      learning_content, question, options, correct_answer, step_status, attempt_count, start_date)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+                    [planId, studentId, weekNumber, stepId, moduleName, topic, qi + 1,
+                        learningContent, q.question, optionsStr, q.correct_answer, currentStatus]
+                );
+                rowsInserted++;
+            }
+        }
+
+        console.log(`[ContentGen] ✅ Week ${weekNumber}, Step ${stepId}: ${rowsInserted} rows (${questions.length} questions)`);
+        return { weekNumber, stepId, questionsStored: questions.length, rowsInserted };
+    }
+
+    /**
+     * Fills content for ALL steps in a student's plan.
+     * Priority: Week 1 first (user sees it immediately), then remaining weeks.
+     * Skips steps that already have content (learning_content is not empty).
+     *
+     * @param {string} studentId
+     * @param {number} planId
+     * @returns {Promise<Object>} { stepsFilled, totalQuestionsGenerated }
+     */
+    static async fillPlanContent(studentId, planId) {
+        // Get all distinct steps, ordered by week and step
+        const [steps] = await pool.execute(
+            `SELECT DISTINCT week_number, step_ID, step_name, learning_content
+             FROM study_plan
+             WHERE student_ID = ? AND plan_id = ?
+             ORDER BY week_number, step_ID`,
+            [studentId, planId]
+        );
+
+        if (steps.length === 0) {
+            console.log('[ContentGen] No steps found to fill content for');
+            return { stepsFilled: 0, totalQuestionsGenerated: 0 };
+        }
+
+        // Separate Week 1 from the rest for priority ordering
+        const week1Steps = steps.filter(s => s.week_number === 1 && (!s.learning_content || s.learning_content === ''));
+        const laterSteps = steps.filter(s => s.week_number > 1 && (!s.learning_content || s.learning_content === ''));
+        const orderedSteps = [...week1Steps, ...laterSteps];
+
+        console.log(`[ContentGen] Filling content for ${orderedSteps.length} steps (${week1Steps.length} in Week 1, ${laterSteps.length} in later weeks)`);
+
+        let stepsFilled = 0;
+        let totalQuestionsGenerated = 0;
+
+        for (const step of orderedSteps) {
+            try {
+                const result = await this.fillStepContent(
+                    studentId, step.week_number, step.step_ID, planId
+                );
+                stepsFilled++;
+                totalQuestionsGenerated += result.questionsStored;
+            } catch (err) {
+                console.error(`[ContentGen] ❌ Failed to fill Week ${step.week_number}, Step ${step.step_ID}: ${err.message}`);
+                // Continue with next step — don't let one failure stop the whole process
+            }
+        }
+
+        console.log(`[ContentGen] ✅ Content generation complete: ${stepsFilled}/${orderedSteps.length} steps filled, ${totalQuestionsGenerated} total questions`);
+        return { stepsFilled, totalQuestionsGenerated };
     }
 
     /**
@@ -269,3 +419,4 @@ class ContentGenerationService {
 }
 
 module.exports = ContentGenerationService;
+

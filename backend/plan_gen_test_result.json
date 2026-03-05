@@ -1,41 +1,151 @@
 {
-  "status": "success",
-  "ai_priority_ranking": [
-    "Computational Thinking",
-    "Programming",
-    "Analytical Thinking",
-    "Mixed"
-  ],
-  "weekly_plan": {
-    "Day 1": {
-      "Category": "Computational Thinking",
-      "Topic": "Flowcharts & Pseudocode",
-      "Level": "intermediate",
-      "Status": "Returning Student"
+  "planId": 1,
+  "totalWeeks": 4,
+  "totalRowsInserted": 20,
+  "weeklyPlans": [
+    {
+      "weekNumber": 1,
+      "rowsInserted": 5,
+      "plan": {
+        "Day 1": {
+          "Category": "Computational Thinking",
+          "Topic": "Flowcharts & Pseudocode",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 2": {
+          "Category": "Computational Thinking",
+          "Topic": "Decomposition Basics",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 3": {
+          "Category": "Programming",
+          "Topic": "Variables & Data Types",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 4": {
+          "Category": "Analytical Thinking",
+          "Topic": "Pattern Recognition",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 5": {
+          "Category": "Mixed",
+          "Topic": "Combined Logic and Coding Challenges",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        }
+      }
     },
-    "Day 2": {
-      "Category": "Computational Thinking",
-      "Topic": "Decomposition Basics",
-      "Level": "intermediate",
-      "Status": "Returning Student"
+    {
+      "weekNumber": 2,
+      "rowsInserted": 5,
+      "plan": {
+        "Day 1": {
+          "Category": "Computational Thinking",
+          "Topic": "Flowcharts & Pseudocode",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 2": {
+          "Category": "Computational Thinking",
+          "Topic": "Decomposition Basics",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 3": {
+          "Category": "Programming",
+          "Topic": "Variables & Data Types",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 4": {
+          "Category": "Analytical Thinking",
+          "Topic": "Pattern Recognition",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 5": {
+          "Category": "Mixed",
+          "Topic": "Combined Logic and Coding Challenges",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        }
+      }
     },
-    "Day 3": {
-      "Category": "Programming",
-      "Topic": "Variables & Data Types",
-      "Level": "intermediate",
-      "Status": "Returning Student"
+    {
+      "weekNumber": 3,
+      "rowsInserted": 5,
+      "plan": {
+        "Day 1": {
+          "Category": "Computational Thinking",
+          "Topic": "Flowcharts & Pseudocode",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 2": {
+          "Category": "Computational Thinking",
+          "Topic": "Decomposition Basics",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 3": {
+          "Category": "Programming",
+          "Topic": "Variables & Data Types",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 4": {
+          "Category": "Analytical Thinking",
+          "Topic": "Pattern Recognition",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 5": {
+          "Category": "Mixed",
+          "Topic": "Combined Logic and Coding Challenges",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        }
+      }
     },
-    "Day 4": {
-      "Category": "Analytical Thinking",
-      "Topic": "Pattern Recognition",
-      "Level": "intermediate",
-      "Status": "Returning Student"
-    },
-    "Day 5": {
-      "Category": "Mixed",
-      "Topic": "Combined Logic and Coding Challenges",
-      "Level": "intermediate",
-      "Status": "Returning Student"
+    {
+      "weekNumber": 4,
+      "rowsInserted": 5,
+      "plan": {
+        "Day 1": {
+          "Category": "Computational Thinking",
+          "Topic": "Flowcharts & Pseudocode",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 2": {
+          "Category": "Computational Thinking",
+          "Topic": "Decomposition Basics",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 3": {
+          "Category": "Programming",
+          "Topic": "Variables & Data Types",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 4": {
+          "Category": "Analytical Thinking",
+          "Topic": "Pattern Recognition",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        },
+        "Day 5": {
+          "Category": "Mixed",
+          "Topic": "Combined Logic and Coding Challenges",
+          "Level": "intermediate",
+          "Status": "Returning Student"
+        }
+      }
     }
-  }
+  ]
 }

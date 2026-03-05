@@ -11,11 +11,13 @@ const CONTENT_API_URL = process.env.CONTENT_API_URL || 'http://localhost:8001';
 const CONTENT_API_KEY = process.env.CONTENT_API_KEY || '';
 
 const payload = {
-    target_topic: "Python Variables and Data Types",
-    proficiency: "Beginner",
-    cognitive_difficulty: "Easy",
+    target_topic: "Pattern Recognition",
+    proficiency: "Advanced",
+    cognitive_difficulty: [[2, 2, 2], [2, 2, 2], [2, 2, 2]],
     historical_gaps: "Programming",
-    gamification: "Low XP - use standard XP rewards and extra goals"
+    gamification_level: 1,
+    gamification_streak: 4,
+    gamification_badge: "Low XP - use standard XP rewards and extra goals"
 };
 
 console.log('='.repeat(50));
@@ -37,8 +39,9 @@ axios.post(`${CONTENT_API_URL}/api/generate-lesson`, payload, {
     .then(res => {
         console.log('');
         console.log('✅ SUCCESS! HTTP', res.status);
-        console.log('Response:');
-        console.log(JSON.stringify(res.data, null, 2));
+        const fs = require('fs');
+        fs.writeFileSync('api_full_response.json', JSON.stringify(res.data, null, 2));
+        console.log('Response saved to api_full_response.json');
     })
     .catch(err => {
         const status = err.response?.status;

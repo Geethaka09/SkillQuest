@@ -1,0 +1,142 @@
+[
+  {
+    "week_number": 1,
+    "step_ID": 1,
+    "module_name": "Computational Thinking",
+    "step_name": "Flowcharts & Pseudocode",
+    "step_status": "IN_PROGRESS"
+  },
+  {
+    "week_number": 1,
+    "step_ID": 2,
+    "module_name": "Computational Thinking",
+    "step_name": "Decomposition Basics",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 1,
+    "step_ID": 3,
+    "module_name": "Programming",
+    "step_name": "Variables & Data Types",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 1,
+    "step_ID": 4,
+    "module_name": "Analytical Thinking",
+    "step_name": "Pattern Recognition",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 1,
+    "step_ID": 5,
+    "module_name": "Mixed",
+    "step_name": "Combined Logic and Coding Challenges",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 2,
+    "step_ID": 1,
+    "module_name": "Computational Thinking",
+    "step_name": "Flowcharts & Pseudocode",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 2,
+    "step_ID": 2,
+    "module_name": "Computational Thinking",
+    "step_name": "Decomposition Basics",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 2,
+    "step_ID": 3,
+    "module_name": "Programming",
+    "step_name": "Variables & Data Types",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 2,
+    "step_ID": 4,
+    "module_name": "Analytical Thinking",
+    "step_name": "Pattern Recognition",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 2,
+    "step_ID": 5,
+    "module_name": "Mixed",
+    "step_name": "Combined Logic and Coding Challenges",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 3,
+    "step_ID": 1,
+    "module_name": "Computational Thinking",
+    "step_name": "Flowcharts & Pseudocode",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 3,
+    "step_ID": 2,
+    "module_name": "Computational Thinking",
+    "step_name": "Decomposition Basics",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 3,
+    "step_ID": 3,
+    "module_name": "Programming",
+    "step_name": "Variables & Data Types",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 3,
+    "step_ID": 4,
+    "module_name": "Analytical Thinking",
+    "step_name": "Pattern Recognition",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 3,
+    "step_ID": 5,
+    "module_name": "Mixed",
+    "step_name": "Combined Logic and Coding Challenges",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 4,
+    "step_ID": 1,
+    "module_name": "Computational Thinking",
+    "step_name": "Flowcharts & Pseudocode",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 4,
+    "step_ID": 2,
+    "module_name": "Computational Thinking",
+    "step_name": "Decomposition Basics",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 4,
+    "step_ID": 3,
+    "module_name": "Programming",
+    "step_name": "Variables & Data Types",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 4,
+    "step_ID": 4,
+    "module_name": "Analytical Thinking",
+    "step_name": "Pattern Recognition",
+    "step_status": "LOCKED"
+  },
+  {
+    "week_number": 4,
+    "step_ID": 5,
+    "module_name": "Mixed",
+    "step_name": "Combined Logic and Coding Challenges",
+    "step_status": "LOCKED"
+  }
+]

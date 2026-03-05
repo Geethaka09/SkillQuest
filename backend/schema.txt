@@ -1,0 +1,20 @@
+CREATE TABLE `study_plan` (
+  `plan_id` int NOT NULL,
+  `student_ID` varchar(10) NOT NULL,
+  `week_number` int NOT NULL,
+  `module_name` varchar(100) DEFAULT NULL,
+  `step_ID` int NOT NULL,
+  `step_name` varchar(255) DEFAULT NULL,
+  `gen_QID` varchar(50) NOT NULL,
+  `learning_content` text,
+  `question` text NOT NULL,
+  `options` text NOT NULL,
+  `correct_answer` text NOT NULL,
+  `step_status` enum('LOCKED','IN_PROGRESS','RETRY_NEEDED','COMPLETED','FAILED_MAX_ATTEMPTS') DEFAULT 'LOCKED',
+  `attempt_count` int DEFAULT '0',
+  `start_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`plan_id`,`week_number`,`step_ID`,`gen_QID`),
+  KEY `student_ID` (`student_ID`),
+  CONSTRAINT `study_plan_ibfk_1` FOREIGN KEY (`student_ID`) REFERENCES `student` (`student_ID`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci

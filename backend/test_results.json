@@ -1,0 +1,29 @@
+﻿[dotenv@17.2.3] injecting env (16) from .env -- tip: ≡ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+Γ£à Connected to Azure MySQL Database
+{
+  "W1S1": {
+    "topic": "Flowcharts & Pseudocode",
+    "questions": 1,
+    "hasContent": true
+  },
+  "W1S2": {
+    "topic": "Decomposition Basics",
+    "questions": 1,
+    "hasContent": true
+  },
+  "W1S3": {
+    "topic": "Variables & Data Types",
+    "questions": 1,
+    "hasContent": false
+  },
+  "W1S4": {
+    "topic": "Pattern Recognition",
+    "questions": 1,
+    "hasContent": false
+  },
+  "W1S5": {
+    "topic": "Combined Logic and Coding Challenges",
+    "questions": 1,
+    "hasContent": false
+  }
+}

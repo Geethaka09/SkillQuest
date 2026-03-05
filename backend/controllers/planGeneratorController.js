@@ -8,20 +8,30 @@ const PlanGeneratorService = require('../services/PlanGeneratorService');
 /**
  * POST /api/plan-generator/generate
  * 
- * Fetches the student's scores, status, and level, and sends them 
- * to the Plan Generator API. Returns the generated plan.
+ * Generates a full multi-week study plan for the authenticated student,
+ * calling the Plan Generator API once per week and storing results in study_plan.
+ * 
+ * Request body (optional):
+ *   { "weeks": 4 }   — number of weeks to generate (default: 4)
  */
 const generatePlan = async (req, res) => {
     try {
         const studentId = req.user.id;
-        console.log(`[PlanGenController] Initiating plan generation for student ${studentId}`);
+        const totalWeeks = parseInt(req.body.weeks) || 4;
 
-        const generatedPlan = await PlanGeneratorService.generateWeekPlan(studentId);
+        console.log(`[PlanGenController] Generating ${totalWeeks}-week plan for student ${studentId}`);
 
-        return res.status(200).json({
+        const result = await PlanGeneratorService.generateFullPlan(studentId, totalWeeks);
+
+        return res.status(201).json({
             success: true,
-            message: 'Plan generated successfully',
-            data: generatedPlan
+            message: `${totalWeeks}-week study plan generated and saved successfully`,
+            data: {
+                planId: result.planId,
+                totalWeeks: result.totalWeeks,
+                totalRowsInserted: result.totalRowsInserted,
+                weeklyPlans: result.weeklyPlans
+            }
         });
 
     } catch (error) {
@@ -34,3 +44,4 @@ const generatePlan = async (req, res) => {
 };
 
 module.exports = { generatePlan };
+

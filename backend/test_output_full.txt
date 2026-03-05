@@ -1,0 +1,159 @@
+﻿[dotenv@17.2.3] injecting env (16) from .env -- tip: ≡ƒôí add observability to secrets: https://dotenvx.com/ops
+[Test] Cleaning existing study_plan rows for S0001...
+Γ£à Connected to Azure MySQL Database
+[Test] Γ£à Cleaned
+
+[Test] Generating 1-week plan (content gen will chain automatically)...
+[PlanGen] Generating week 1/1 for student S0001...
+[PlanGen] Requesting plan for S0001 with payload: {"scores":[5,0,0],"status":1,"user_level":"intermediate"}
+[PlanGen] Γ£à Plan generated successfully
+[PlanGen] Γ£à Week 1: inserted 5 rows (planId: 1)
+[PlanGen] Γ£à Full plan complete: 1 weeks, 5 total rows
+[Test] Γ£à Plan created: planId=1, rows=5
+
+[Test] Waiting for background content generation (this may take a few minutes)...
+[ContentGen] Filling content for 5 steps (5 in Week 1, 0 in later weeks)
+[ContentGen] Filling content for Week 1, Step 1: "Flowcharts & Pseudocode"
+[ContentGen] ΓåÆ POST /api/generate-lesson | topic: "Flowcharts & Pseudocode" | level: Intermediate | xp_level: 6 | streak: 56
+[Test] Progress: 0/5 rows have content (10s elapsed)
+[Test] Progress: 0/5 rows have content (20s elapsed)
+[Test] Progress: 0/5 rows have content (30s elapsed)
+[Test] Progress: 0/5 rows have content (40s elapsed)
+[ContentGen] Γ£à AI Engine responded successfully
+[ContentGen] Parsed 0 questions for "Flowcharts & Pseudocode"
+[ContentGen] Γ£à Week 1, Step 1: 1 rows (0 questions)
+[ContentGen] Filling content for Week 1, Step 2: "Decomposition Basics"
+[ContentGen] ΓåÆ POST /api/generate-lesson | topic: "Decomposition Basics" | level: Intermediate | xp_level: 6 | streak: 56
+[Test] Progress: 1/5 rows have content (50s elapsed)
+[Test] Progress: 1/5 rows have content (60s elapsed)
+[Test] Progress: 1/5 rows have content (70s elapsed)
+[Test] Progress: 1/5 rows have content (80s elapsed)
+[Test] Progress: 1/5 rows have content (90s elapsed)
+[ContentGen] Γ£à AI Engine responded successfully
+[ContentGen] Parsed 0 questions for "Decomposition Basics"
+[Test] Progress: 1/5 rows have content (100s elapsed)
+[ContentGen] Γ£à Week 1, Step 2: 1 rows (0 questions)
+[ContentGen] Filling content for Week 1, Step 3: "Variables & Data Types"
+[ContentGen] ΓåÆ POST /api/generate-lesson | topic: "Variables & Data Types" | level: Intermediate | xp_level: 6 | streak: 56
+[Test] Progress: 2/5 rows have content (110s elapsed)
+node : [ContentGen] Γ¥î AI Engine Error 500: Error 
+code: 429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14869 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14869 seconds before retrying.'}}
+At line:1 char:1
++ node test_plan_gen.js 2>&1 | Out-File -Encoding 
+utf8 test_output_full ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+([Conten    tGen] Γ¥...re retrying.'}}:String) [], 
+RemoteExc    eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[ContentGen] Γ¥î Failed to fill Week 1, Step 3: 
+Content generation API failed (500): Error code: 
+429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14869 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14869 seconds before retrying.'}}
+[ContentGen] Filling content for Week 1, Step 4: "Pattern Recognition"
+[ContentGen] ΓåÆ POST /api/generate-lesson | topic: "Pattern Recognition" | level: Intermediate | xp_level: 6 | streak: 56
+[Test] Progress: 2/5 rows have content (120s elapsed)
+[Test] Progress: 2/5 rows have content (130s elapsed)
+[ContentGen] Γ¥î AI Engine Error 500: Error code: 
+429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14845 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14845 seconds before retrying.'}}
+[ContentGen] Γ¥î Failed to fill Week 1, Step 4: 
+Content generation API failed (500): Error code: 
+429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14845 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14845 seconds before retrying.'}}
+[ContentGen] Filling content for Week 1, Step 5: "Combined Logic and Coding Challenges"
+[ContentGen] ΓåÆ POST /api/generate-lesson | topic: "Combined Logic and Coding Challenges" | level: Intermediate | xp_level: 6 | streak: 56
+[Test] Progress: 2/5 rows have content (140s elapsed)
+[Test] Progress: 2/5 rows have content (150s elapsed)
+[ContentGen] Γ¥î AI Engine Error 500: Error code: 
+429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14818 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14818 seconds before retrying.'}}
+[ContentGen] Γ¥î Failed to fill Week 1, Step 5: 
+Content generation API failed (500): Error code: 
+429 - {'error': {'code': 'RateLimitReached', 
+'message': 'Rate limit of 50 per 86400s exceeded 
+for UserByModelByDay. Please wait 14818 seconds 
+before retrying.', 'details': 'Rate limit of 50 
+per 86400s exceeded for UserByModelByDay. Please 
+wait 14818 seconds before retrying.'}}
+[ContentGen] Γ£à Content generation complete: 2/5 steps filled, 0 total questions
+[PlanGen] Γ£à Background content generation done: 2 steps, 0 questions
+[Test] Progress: 2/5 rows have content (160s elapsed)
+[Test] Progress: 2/5 rows have content (170s elapsed)
+[Test] Progress: 2/5 rows have content (180s elapsed)
+[Test] Progress: 2/5 rows have content (190s elapsed)
+[Test] Progress: 2/5 rows have content (200s elapsed)
+[Test] Progress: 2/5 rows have content (210s elapsed)
+[Test] Progress: 2/5 rows have content (220s elapsed)
+[Test] Progress: 2/5 rows have content (230s elapsed)
+[Test] Progress: 2/5 rows have content (240s elapsed)
+[Test] Progress: 2/5 rows have content (250s elapsed)
+[Test] Progress: 2/5 rows have content (260s elapsed)
+[Test] Progress: 2/5 rows have content (270s elapsed)
+[Test] Progress: 2/5 rows have content (280s elapsed)
+[Test] Progress: 2/5 rows have content (290s elapsed)
+[Test] Progress: 2/5 rows have content (300s elapsed)
+[Test] Progress: 2/5 rows have content (310s elapsed)
+[Test] Progress: 2/5 rows have content (320s elapsed)
+[Test] Progress: 2/5 rows have content (330s elapsed)
+[Test] Progress: 2/5 rows have content (340s elapsed)
+[Test] Progress: 2/5 rows have content (350s elapsed)
+[Test] Progress: 2/5 rows have content (360s elapsed)
+[Test] Progress: 2/5 rows have content (370s elapsed)
+[Test] Progress: 2/5 rows have content (380s elapsed)
+[Test] Progress: 2/5 rows have content (390s elapsed)
+[Test] Progress: 2/5 rows have content (400s elapsed)
+[Test] Progress: 2/5 rows have content (410s elapsed)
+[Test] Progress: 2/5 rows have content (420s elapsed)
+[Test] Progress: 2/5 rows have content (430s elapsed)
+[Test] Progress: 2/5 rows have content (440s elapsed)
+[Test] Progress: 2/5 rows have content (450s elapsed)
+[Test] Progress: 2/5 rows have content (460s elapsed)
+[Test] Progress: 2/5 rows have content (470s elapsed)
+[Test] Progress: 2/5 rows have content (480s elapsed)
+[Test] Progress: 2/5 rows have content (490s elapsed)
+[Test] Progress: 2/5 rows have content (500s elapsed)
+[Test] Progress: 2/5 rows have content (510s elapsed)
+[Test] Progress: 2/5 rows have content (520s elapsed)
+[Test] Progress: 2/5 rows have content (530s elapsed)
+[Test] Progress: 2/5 rows have content (540s elapsed)
+[Test] Progress: 2/5 rows have content (550s elapsed)
+[Test] Progress: 2/5 rows have content (560s elapsed)
+[Test] Progress: 2/5 rows have content (570s elapsed)
+[Test] Progress: 2/5 rows have content (580s elapsed)
+[Test] Progress: 2/5 rows have content (590s elapsed)
+[Test] Progress: 2/5 rows have content (600s elapsed)
+
+[Test] === FINAL VERIFICATION ===
+Total rows: 5
+
+Step Summary:
+  W1S1: "Flowcharts & Pseudocode" | IN_PROGRESS | 1 questions | content: Γ£à
+  W1S2: "Decomposition Basics" | LOCKED | 1 questions | content: Γ£à
+  W1S3: "Variables & Data Types" | LOCKED | 1 questions | content: Γ¥î
+  W1S4: "Pattern Recognition" | LOCKED | 1 questions | content: Γ¥î
+  W1S5: "Combined Logic and Coding Challenges" | LOCKED | 1 questions | content: Γ¥î
+
+[Test] Result saved to content_chain_test.json

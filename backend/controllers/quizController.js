@@ -335,6 +335,16 @@ const completeQuiz = async (req, res) => {
         const { classifyStudent } = require('../services/ProfileClassifierService');
         await classifyStudent(userId);
 
+        // Generate the full 4-week study plan (fire-and-forget to avoid blocking response)
+        const PlanGeneratorService = require('../services/PlanGeneratorService');
+        PlanGeneratorService.generateFullPlan(userId, 4)
+            .then(result => {
+                console.log(`[QuizComplete] ✅ Study plan generated: ${result.totalRowsInserted} rows across ${result.totalWeeks} weeks`);
+            })
+            .catch(err => {
+                console.error(`[QuizComplete] ❌ Study plan generation failed:`, err.message);
+            });
+
         // Get updated user data
         const [rows] = await pool.execute(
             'SELECT student_ID, name, email, profile_pic, status, level FROM student WHERE student_ID = ?',
@@ -359,6 +369,7 @@ const completeQuiz = async (req, res) => {
                 p_score,
                 total_score
             },
+            planGenerated: true,
             user: {
                 id: user.student_ID,
                 email: user.email,
