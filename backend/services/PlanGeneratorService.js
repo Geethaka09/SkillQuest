@@ -115,8 +115,8 @@ class PlanGeneratorService {
                  (plan_id, student_ID, week_number, step_ID, module_name, step_name,
                   gen_QID, learning_content, question, options, correct_answer,
                   step_status, attempt_count, start_date)
-                 VALUES (?, ?, ?, ?, ?, ?, 1, '', '', '[]', '', ?, 0, NOW())`,
-                [planId, studentId, weekNumber, stepId, moduleName, stepName, stepStatus]
+                 VALUES (?, ?, ?, ?, ?, ?, ?, '', '', '[]', '', ?, 0, NOW())`,
+                [planId, studentId, weekNumber, stepId, moduleName, stepName, `Q_W${weekNumber}_S${stepId}_0`, stepStatus]
             );
             rowsInserted++;
         }

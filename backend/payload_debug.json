@@ -1,0 +1,25 @@
+{
+  "target_topic": "Pattern Recognition",
+  "proficiency": "Advanced",
+  "cognitive_difficulty": [
+    [
+      2,
+      2,
+      2
+    ],
+    [
+      3,
+      2,
+      2
+    ],
+    [
+      2,
+      2,
+      2
+    ]
+  ],
+  "historical_gaps": "None",
+  "gamification_level": 1,
+  "gamification_streak": 4,
+  "gamification_badge": "Low XP - use standard XP rewards and extra goals"
+}

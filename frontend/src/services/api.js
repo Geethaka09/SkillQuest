@@ -251,6 +251,17 @@ export const studyPlanService = {
 };
 
 /**
+ * Content Generation Service
+ * Manages AI interactions for study plan generation and regeneration.
+ */
+export const contentService = {
+    regenerateStep: async (data) => {
+        const response = await api.post('/content/regenerate-step', data);
+        return response.data;
+    }
+};
+
+/**
  * Analytics Service
  * Provides data for the Weekly Engagement and XP Velocity charts.
  */

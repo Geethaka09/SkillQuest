@@ -26,16 +26,18 @@ const getStudentProgress = async (req, res) => {
         const studentId = req.user.id;
 
         // 1. Get aggregated stats per week (count DISTINCT step_IDs, not rows)
+        // Group by week_number ONLY — each step may have a different module_name (category)
+        // so grouping by module_name would split one week into multiple entries
         const [weekStats] = await pool.execute(
             `SELECT 
                 week_number,
-                module_name,
+                GROUP_CONCAT(DISTINCT module_name ORDER BY module_name SEPARATOR ', ') as module_name,
                 COUNT(DISTINCT step_ID) as total_steps,
                 COUNT(DISTINCT CASE WHEN step_status = 'COMPLETED' THEN step_ID END) as completed_steps,
                 COUNT(DISTINCT CASE WHEN step_status = 'IN_PROGRESS' THEN step_ID END) as in_progress_steps
              FROM study_plan 
              WHERE student_ID = ?
-             GROUP BY week_number, module_name
+             GROUP BY week_number
              ORDER BY week_number`,
             [studentId]
         );
@@ -169,11 +171,13 @@ const getWeekContent = async (req, res) => {
         const studentId = req.user.id;
         const weekNumber = parseInt(req.params.weekNumber);
 
-        // Get all steps for this week with learning content
+        // Get all steps for this week with learning content for the LATEST plan
         const [steps] = await pool.execute(
             `SELECT 
                 step_ID,
                 module_name,
+                step_name,
+                plan_id,
                 gen_QID,
                 learning_content,
                 question,
@@ -182,9 +186,11 @@ const getWeekContent = async (req, res) => {
                 step_status,
                 attempt_count
              FROM study_plan 
-             WHERE student_ID = ? AND week_number = ?
+             WHERE student_ID = ? 
+             AND week_number = ?
+             AND plan_id = (SELECT MAX(plan_id) FROM study_plan WHERE student_ID = ?)
              ORDER BY step_ID, gen_QID`,
-            [studentId, weekNumber]
+            [studentId, weekNumber, studentId]
         );
 
         if (steps.length === 0) {
@@ -205,6 +211,8 @@ const getWeekContent = async (req, res) => {
 
                 stepsGrouped[step.step_ID] = {
                     stepId: step.step_ID,
+                    stepName: step.step_name || `Step ${step.step_ID}`,
+                    planId: step.plan_id,
                     status: status,
                     learningContent: step.learning_content,
                     questions: []

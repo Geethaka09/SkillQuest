@@ -1,0 +1,11 @@
+{
+  "at_tol_easy": 2,
+  "at_tol_med": 2,
+  "at_tol_hard": 2,
+  "ct_tol_easy": 3,
+  "ct_tol_med": 2,
+  "ct_tol_hard": 2,
+  "p_tol_easy": 2,
+  "p_tol_med": 2,
+  "p_tol_hard": 2
+}

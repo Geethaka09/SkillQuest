@@ -42,9 +42,12 @@ const getStepContent = async (req, res) => {
                 step_status,
                 attempt_count
              FROM study_plan 
-             WHERE student_ID = ? AND week_number = ? AND step_ID = ?
+             WHERE student_ID = ? 
+             AND week_number = ? 
+             AND step_ID = ?
+             AND plan_id = (SELECT MAX(plan_id) FROM study_plan WHERE student_ID = ?)
              ORDER BY gen_QID`,
-            [studentId, weekNumber, stepId]
+            [studentId, weekNumber, stepId, studentId]
         );
 
         if (rows.length === 0) {

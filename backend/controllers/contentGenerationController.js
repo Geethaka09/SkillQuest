@@ -97,4 +97,45 @@ const getPlanStatus = async (req, res) => {
     }
 };
 
-module.exports = { generatePlan, getPlanStatus };
+/**
+ * POST /api/content/regenerate-step
+ * 
+ * Manually trigger AI content generation for a specific existing step.
+ * Used when the AI Engine failed to generate questions or content previously.
+ */
+const regenerateStep = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { week_number, step_id, plan_id } = req.body;
+
+        if (!week_number || !step_id || !plan_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'week_number, step_id, and plan_id are required'
+            });
+        }
+
+        console.log(`[ContentGen] Regenerating content for student ${studentId}, week ${week_number}, step ${step_id}`);
+
+        await ContentGenerationService.fillStepContent(
+            studentId,
+            parseInt(week_number),
+            parseInt(step_id),
+            parseInt(plan_id)
+        );
+
+        return res.json({
+            success: true,
+            message: `Content successfully regenerated for Week ${week_number}, Step ${step_id}`
+        });
+
+    } catch (error) {
+        console.error('[ContentGen] Regenerate step error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to regenerate content'
+        });
+    }
+};
+
+module.exports = { generatePlan, getPlanStatus, regenerateStep };

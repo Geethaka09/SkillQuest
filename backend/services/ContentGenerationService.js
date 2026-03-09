@@ -87,6 +87,100 @@ class ContentGenerationService {
     }
 
     /**
+     * Parses the raw AI API response into structured learning content and questions.
+     *
+     * The AI returns markdown with two sections:
+     *   1. Educational Content (everything before ## Quiz)
+     *   2. Quiz section with numbered questions, each having:
+     *      - Correct Answer: **text**
+     *      - Distractors: option1 / option2 / option3  (or comma-separated)
+     *
+     * @param {Object|string} aiResponse - Raw response from generateContent()
+     * @returns {{ learningContent: string, questions: Array<{question: string, options: string[], correct_answer: string}> }}
+     */
+    static parseAIResponse(aiResponse) {
+        // 1. Extract the markdown text from the API response envelope
+        let markdownText = '';
+        if (aiResponse.status === 'success' && typeof aiResponse.data === 'string') {
+            markdownText = aiResponse.data;
+        } else if (typeof aiResponse === 'string') {
+            markdownText = aiResponse;
+        } else if (aiResponse.data && typeof aiResponse.data === 'string') {
+            markdownText = aiResponse.data;
+        } else {
+            markdownText = JSON.stringify(aiResponse);
+        }
+
+        // 2. Split at the Quiz section heading to separate lesson content from questions
+        //    Matches: "## Quiz:", "## Quiz ", "## Quiz: Title here"
+        const quizSplit = markdownText.split(/##\s*Quiz[:\s]/i);
+        const learningContent = quizSplit[0].trim();
+        const quizSection = quizSplit[1] || '';
+
+        // 3. Parse numbered questions from quiz markdown
+        //    Matches: "### 1.", "### 2.", "1.", "1)", "Question 1:", etc.
+        const questions = [];
+        const qBlocks = quizSection
+            .split(/\n+(?:###\s*)?(?:Question\s*|Q\.?\s*)?\d+[:\.)\s]\s*(?:\*\*)?/i)
+            .map(b => b.trim())
+            .filter(Boolean);
+
+        for (const block of qBlocks) {
+            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+            // Question text: strip bold markers (**) and ensure ends with ?
+            const questionText = lines[0]
+                .replace(/\*\*/g, '')
+                .replace(/[?]\s*$/, '?')
+                .trim();
+
+            const answerLine = lines.find(l => /^-?\s*Correct\s*Answer:/i.test(l));
+            const distractorLine = lines.find(l => /^-?\s*Distractors?:/i.test(l));
+
+            let correctAnswer = '';
+            let distractors = [];
+
+            if (answerLine) {
+                // Strip prefix, bold markers (**), and backticks
+                correctAnswer = answerLine
+                    .replace(/^-?\s*Correct\s*Answer:\s*/i, '')
+                    .replace(/\*\*/g, '')
+                    .replace(/`/g, '')
+                    .trim();
+
+                if (distractorLine) {
+                    const rawDistractors = distractorLine.replace(/^-?\s*Distractors?:\s*/i, '');
+                    // Handle both " / " and "," separators
+                    if (rawDistractors.includes(' / ')) {
+                        distractors = rawDistractors.split(' / ').map(d => d.replace(/\*\*/g, '').trim().replace(/\.$/, ''));
+                    } else {
+                        distractors = rawDistractors.split(',').map(d => d.replace(/\*\*/g, '').trim().replace(/\.$/, ''));
+                    }
+                }
+            } else {
+                // Fallback: support unstructured options (e.g. "a) option", "1. option")
+                const optionLines = lines.filter(l => /^(\d+[\.\)]|[a-dA-D][\.\)])\s+/.test(l));
+                if (optionLines.length >= 2) {
+                    correctAnswer = optionLines[0].replace(/^(\d+[\.\)]|[a-dA-D][\.\)])\s+/, '').replace(/\*\*/g, '').trim();
+                    distractors = optionLines.slice(1).map(opt =>
+                        opt.replace(/^(\d+[\.\)]|[a-dA-D][\.\)])\s+/, '').replace(/\*\*/g, '').trim()
+                    );
+                }
+            }
+
+            // Skip invalid questions (missing text, answer, or distractors)
+            if (!questionText || !correctAnswer || distractors.length === 0) continue;
+
+            // Shuffle correct answer + distractors into options array
+            const options = [correctAnswer, ...distractors].sort(() => Math.random() - 0.5);
+
+            questions.push({ question: questionText, options, correct_answer: correctAnswer });
+        }
+
+        console.log(`[ContentGen] Parsed ${questions.length} questions from AI response`);
+        return { learningContent, questions };
+    }
+
+    /**
      * Calls POST /api/generate-lesson on the SkillQuest AI Engine.
      *
      * @param {string} studentId
@@ -160,50 +254,8 @@ class ContentGenerationService {
         const topic = targetTopic || moduleName;
         const aiResponse = await this.generateContent(studentId, topic, moduleName);
 
-        // --- Parse the AI API response ---
-        // Actual API format: { status: 'success', data: '# Markdown string with lesson + quiz' }
-        // The topic name in the markdown is NOT stored — module_name comes from the input param.
-        let markdownText = '';
-        if (aiResponse.status === 'success' && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
-        } else if (typeof aiResponse === 'string') {
-            markdownText = aiResponse;
-        } else if (aiResponse.data && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
-        } else {
-            markdownText = JSON.stringify(aiResponse);
-        }
-
-        // Split at the Quiz section heading to separate lesson content from questions
-        const quizSplit = markdownText.split(/##\s*Quiz[:\s]/i);
-        const learningContent = quizSplit[0].trim();
-        const quizSection = quizSplit[1] || '';
-
-        // Parse numbered questions from quiz markdown:
-        // Format: "1. **Question text?**\n   - Correct Answer: X\n   - Distractors: A, B, C."
-        const questions = [];
-        const qBlocks = quizSection.split(/\n+(?:###\s*)?\d+\.\s+(?:\*\*)?/).filter(b => b.trim());
-        for (const block of qBlocks) {
-            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-            const questionText = lines[0].replace(/\*\*/g, '').replace(/[?]\s*$/, '?').trim();
-
-            const answerLine = lines.find(l => /^-?\s*Correct\s*Answer:/i.test(l));
-            const distractorLine = lines.find(l => /^-?\s*Distractors?:/i.test(l));
-
-            if (!questionText || !answerLine) continue;
-
-            const correctAnswer = answerLine.replace(/^-?\s*Correct\s*Answer:\s*/i, '').replace(/`/g, '').trim();
-            const distractors = distractorLine
-                ? distractorLine.replace(/^-?\s*Distractors?:\s*/i, '').split(',').map(d => d.trim().replace(/\.$/, ''))
-                : [];
-
-            // Shuffle correct answer + distractors into options array
-            const options = [correctAnswer, ...distractors].sort(() => Math.random() - 0.5);
-
-            questions.push({ question: questionText, options, correct_answer: correctAnswer });
-        }
-
-        console.log(`[ContentGen] Parsed ${questions.length} questions from AI response`);
+        // Parse AI response into learning content + questions
+        const { learningContent, questions } = this.parseAIResponse(aiResponse);
 
         // --- Get next globally unique plan_id ---
         const [planIdResult] = await pool.execute(
@@ -227,7 +279,7 @@ class ContentGenerationService {
                      (plan_id, student_ID, week_number, step_ID, module_name, step_name, gen_QID,
                       learning_content, question, options, correct_answer, step_status, attempt_count, start_date)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
-                    [planId, studentId, weekNumber, stepId, moduleName, topic, qi + 1,
+                    [planId, studentId, weekNumber, stepId, moduleName, topic, `Q_W${weekNumber}_S${stepId}_${qi + 1}`,
                         learningContent, q.question, optionsStr, q.correct_answer, status]
                 );
                 rowsInserted++;
@@ -275,71 +327,39 @@ class ContentGenerationService {
         // 2. Call AI Engine
         const aiResponse = await this.generateContent(studentId, topic, moduleName);
 
-        // 3. Parse AI response
-        let markdownText = '';
-        if (aiResponse.status === 'success' && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
-        } else if (typeof aiResponse === 'string') {
-            markdownText = aiResponse;
-        } else if (aiResponse.data && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
-        } else {
-            markdownText = JSON.stringify(aiResponse);
-        }
-
-        const quizSplit = markdownText.split(/##\s*Quiz[:\s]/i);
-        const learningContent = quizSplit[0].trim();
-        const quizSection = quizSplit[1] || '';
-
-        // Parse questions
-        const questions = [];
-        const qBlocks = quizSection.split(/\n+(?:###\s*)?\d+\.\s+(?:\*\*)?/).filter(b => b.trim());
-        for (const block of qBlocks) {
-            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-            const questionText = lines[0].replace(/\*\*/g, '').replace(/[?]\s*$/, '?').trim();
-
-            const answerLine = lines.find(l => /^-?\s*Correct\s*Answer:/i.test(l));
-            const distractorLine = lines.find(l => /^-?\s*Distractors?:/i.test(l));
-
-            if (!questionText || !answerLine) continue;
-
-            const correctAnswer = answerLine.replace(/^-?\s*Correct\s*Answer:\s*/i, '').replace(/`/g, '').trim();
-            const distractors = distractorLine
-                ? distractorLine.replace(/^-?\s*Distractors?:\s*/i, '').split(',').map(d => d.trim().replace(/\.$/, ''))
-                : [];
-
-            const options = [correctAnswer, ...distractors].sort(() => Math.random() - 0.5);
-            questions.push({ question: questionText, options, correct_answer: correctAnswer });
-        }
+        // 3. Parse AI response into learning content + questions
+        const { learningContent, questions } = this.parseAIResponse(aiResponse);
 
         console.log(`[ContentGen] Parsed ${questions.length} questions for "${topic}"`);
 
-        // 4. Delete existing placeholder row(s) for this step
+        // 4. Validate we have content before touching existing rows
+        let rowsInserted = 0;
+
+        if (questions.length === 0) {
+            // DO NOT delete existing rows — preserve them so the step still appears
+            throw new Error('AI Engine failed to generate any valid questions. Original rows preserved.');
+        }
+
+        // 5. Delete existing placeholder row(s) ONLY after successful parsing
         await pool.execute(
             `DELETE FROM study_plan 
              WHERE student_ID = ? AND plan_id = ? AND week_number = ? AND step_ID = ?`,
             [studentId, planId, weekNumber, stepId]
         );
 
-        // 5. Insert new rows with content
-        let rowsInserted = 0;
-
-        if (questions.length === 0) {
-            throw new Error('AI Engine failed to generate any valid questions. Content discarded.');
-        } else {
-            for (let qi = 0; qi < questions.length; qi++) {
-                const q = questions[qi];
-                const optionsStr = JSON.stringify(q.options);
-                await pool.execute(
-                    `INSERT INTO study_plan
-                     (plan_id, student_ID, week_number, step_ID, module_name, step_name, gen_QID,
-                      learning_content, question, options, correct_answer, step_status, attempt_count, start_date)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
-                    [planId, studentId, weekNumber, stepId, moduleName, topic, qi + 1,
-                        learningContent, q.question, optionsStr, q.correct_answer, currentStatus]
-                );
-                rowsInserted++;
-            }
+        // 6. Insert new rows with generated content
+        for (let qi = 0; qi < questions.length; qi++) {
+            const q = questions[qi];
+            const optionsStr = JSON.stringify(q.options);
+            await pool.execute(
+                `INSERT INTO study_plan
+                 (plan_id, student_ID, week_number, step_ID, module_name, step_name, gen_QID,
+                   learning_content, question, options, correct_answer, step_status, attempt_count, start_date)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+                [planId, studentId, weekNumber, stepId, moduleName, topic, `Q_W${weekNumber}_S${stepId}_${qi + 1}`,
+                    learningContent, q.question, optionsStr, q.correct_answer, currentStatus]
+            );
+            rowsInserted++;
         }
 
         console.log(`[ContentGen] ✅ Week ${weekNumber}, Step ${stepId}: ${rowsInserted} rows (${questions.length} questions)`);
@@ -381,15 +401,33 @@ class ContentGenerationService {
         let totalQuestionsGenerated = 0;
 
         for (const step of orderedSteps) {
-            try {
-                const result = await this.fillStepContent(
-                    studentId, step.week_number, step.step_ID, planId
-                );
-                stepsFilled++;
-                totalQuestionsGenerated += result.questionsStored;
-            } catch (err) {
-                console.error(`[ContentGen] ❌ Failed to fill Week ${step.week_number}, Step ${step.step_ID}: ${err.message}`);
-                // Continue with next step — don't let one failure stop the whole process
+            let success = false;
+            let attempts = 0;
+            const maxAttempts = 3;
+
+            while (!success && attempts < maxAttempts) {
+                attempts++;
+                try {
+                    // Add a 5 second delay between requests to avoid rate limits
+                    if (stepsFilled > 0 || attempts > 1) {
+                        console.log(`[ContentGen] Waiting 5 seconds before next request...`);
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }
+
+                    const result = await this.fillStepContent(
+                        studentId, step.week_number, step.step_ID, planId
+                    );
+                    stepsFilled++;
+                    totalQuestionsGenerated += result.questionsStored;
+                    success = true; // Break the while loop
+                } catch (err) {
+                    console.error(`[ContentGen] ❌ Failed to fill W${step.week_number} S${step.step_ID} (Attempt ${attempts}/${maxAttempts}):`, err.message || err);
+
+                    if (attempts < maxAttempts) {
+                        console.log(`[ContentGen] ⚠️ Retrying in 10 seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 10000));
+                    }
+                }
             }
         }
 

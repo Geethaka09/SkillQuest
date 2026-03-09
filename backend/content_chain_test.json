@@ -3,7 +3,7 @@
     "W1S1": {
       "topic": "Pattern Recognition",
       "status": "IN_PROGRESS",
-      "questions": 1,
+      "questions": 15,
       "hasContent": true
     },
     "W1S2": {
@@ -16,20 +16,20 @@
       "topic": "Variables & Data Types",
       "status": "LOCKED",
       "questions": 1,
-      "hasContent": true
+      "hasContent": false
     },
     "W1S4": {
       "topic": "Combined Logic and Coding Challenges",
       "status": "LOCKED",
       "questions": 1,
-      "hasContent": true
+      "hasContent": false
     },
     "W1S5": {
       "topic": "Flowcharts & Pseudocode",
       "status": "LOCKED",
       "questions": 1,
-      "hasContent": true
+      "hasContent": false
     }
   },
-  "totalRows": 5
+  "totalRows": 19
 }

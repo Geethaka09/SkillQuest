@@ -513,7 +513,7 @@ const DashboardPage = () => {
                                         )}
                                     </div>
                                     <div className="module-details">
-                                        <h4>Week {module.weekNumber}: {module.name}</h4>
+                                        <h4>Week {module.weekNumber}</h4>
                                         <span className="module-status">
                                             {module.status === 'LOCKED' && module.daysRemaining
                                                 ? `Unlocks in ${module.daysRemaining} day${module.daysRemaining > 1 ? 's' : ''}`
