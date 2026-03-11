@@ -458,7 +458,29 @@
     font-size: 1.4rem;
     font-weight: 700;
     color: #1e293b;
-    margin: 0 0 4px;
+    margin: 0 0 12px;
+}
+
+.module-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-chip {
+    padding: 6px 14px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.tag-chip:hover {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .module-info p {

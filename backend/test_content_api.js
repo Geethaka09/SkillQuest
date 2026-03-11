@@ -8,7 +8,6 @@ require('dotenv').config();
 const axios = require('axios');
 
 const CONTENT_API_URL = process.env.CONTENT_API_URL || 'http://localhost:8001';
-const CONTENT_API_KEY = process.env.CONTENT_API_KEY || '';
 
 const payload = {
     target_topic: "Pattern Recognition",
@@ -24,15 +23,13 @@ console.log('='.repeat(50));
 console.log('SkillQuest AI Engine — Connection Test');
 console.log('='.repeat(50));
 console.log(`URL:     ${CONTENT_API_URL}/api/generate-lesson`);
-console.log(`API Key: ${CONTENT_API_KEY ? CONTENT_API_KEY.substring(0, 10) + '...' : '(none)'}`);
 console.log('Payload:', JSON.stringify(payload, null, 2));
 console.log('');
 console.log('Sending request...');
 
 axios.post(`${CONTENT_API_URL}/api/generate-lesson`, payload, {
     headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': CONTENT_API_KEY
+        'Content-Type': 'application/json'
     },
     timeout: 90000
 })

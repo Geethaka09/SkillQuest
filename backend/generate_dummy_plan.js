@@ -5,7 +5,6 @@ const pool = require('./config/database');
 
 const STUDENT_ID = 'S0001';
 const CAPI = process.env.CONTENT_API_URL;
-const KEY = process.env.CONTENT_API_KEY;
 
 const PLAN_TOPICS = [
     { week: 1, domain: 'Programming', topic: 'Variables & Data Types' },

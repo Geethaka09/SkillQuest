@@ -3,19 +3,19 @@ const pool = require('../config/database');
 
 // Content Generation API (SkillQuest AI Engine hosted on Azure)
 const CONTENT_API_URL = process.env.CONTENT_API_URL || 'http://localhost:8001';
-const CONTENT_API_KEY = process.env.CONTENT_API_KEY || '';
 
 /**
  * Content Generation Service
  *
  * Bridges the Node.js backend with the externally hosted SkillQuest AI Engine API.
  *
- * Real API Contract (verified via live OpenAPI spec):
+ * Real API Contract:
  *   Endpoint:  POST /api/generate-lesson
  *   Schema:    UserParameters
  *   Required:  target_topic, proficiency, cognitive_difficulty (3×3 matrix),
  *              historical_gaps, gamification_level, gamification_streak, gamification_badge
- *   Auth:      X-API-Key header
+ *   Auth:      None (no API key required)
+ *   Response:  { status: 'success', data: { content: '<markdown>', quiz: [{question, correct_answer, distractors}] } }
  */
 class ContentGenerationService {
 
@@ -89,83 +89,38 @@ class ContentGenerationService {
     /**
      * Parses the raw AI API response into structured learning content and questions.
      *
-     * The AI returns markdown with two sections:
-     *   1. Educational Content (everything before ## Quiz)
-     *   2. Quiz section with numbered questions, each having:
-     *      - Correct Answer: **text**
-     *      - Distractors: option1 / option2 / option3  (or comma-separated)
+     * New API format:
+     *   { status: 'success', data: { content: '<markdown>', quiz: [{question, correct_answer, distractors}] } }
      *
-     * @param {Object|string} aiResponse - Raw response from generateContent()
+     * @param {Object} aiResponse - Raw response from generateContent()
      * @returns {{ learningContent: string, questions: Array<{question: string, options: string[], correct_answer: string}> }}
      */
     static parseAIResponse(aiResponse) {
-        // 1. Extract the markdown text from the API response envelope
-        let markdownText = '';
-        if (aiResponse.status === 'success' && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
-        } else if (typeof aiResponse === 'string') {
-            markdownText = aiResponse;
-        } else if (aiResponse.data && typeof aiResponse.data === 'string') {
-            markdownText = aiResponse.data;
+        // 1. Extract learning content from the structured response
+        let learningContent = '';
+        let quizArray = [];
+
+        if (aiResponse.status === 'success' && aiResponse.data && typeof aiResponse.data === 'object') {
+            // New structured format: { status, data: { content, quiz } }
+            learningContent = (aiResponse.data.content || '').trim();
+            quizArray = Array.isArray(aiResponse.data.quiz) ? aiResponse.data.quiz : [];
+        } else if (aiResponse.data && typeof aiResponse.data === 'object') {
+            // Without status wrapper but still structured
+            learningContent = (aiResponse.data.content || '').trim();
+            quizArray = Array.isArray(aiResponse.data.quiz) ? aiResponse.data.quiz : [];
         } else {
-            markdownText = JSON.stringify(aiResponse);
+            console.error('[ContentGen] Unexpected AI response format:', JSON.stringify(aiResponse).substring(0, 200));
+            return { learningContent: '', questions: [] };
         }
 
-        // 2. Split at the Quiz section heading to separate lesson content from questions
-        //    Matches: "## Quiz:", "## Quiz ", "## Quiz: Title here"
-        const quizSplit = markdownText.split(/##\s*Quiz[:\s]/i);
-        const learningContent = quizSplit[0].trim();
-        const quizSection = quizSplit[1] || '';
-
-        // 3. Parse numbered questions from quiz markdown
-        //    Matches: "### 1.", "### 2.", "1.", "1)", "Question 1:", etc.
+        // 2. Map quiz array to the internal question format
         const questions = [];
-        const qBlocks = quizSection
-            .split(/\n+(?:###\s*)?(?:Question\s*|Q\.?\s*)?\d+[:\.)\s]\s*(?:\*\*)?/i)
-            .map(b => b.trim())
-            .filter(Boolean);
-
-        for (const block of qBlocks) {
-            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-            // Question text: strip bold markers (**) and ensure ends with ?
-            const questionText = lines[0]
-                .replace(/\*\*/g, '')
-                .replace(/[?]\s*$/, '?')
-                .trim();
-
-            const answerLine = lines.find(l => /^-?\s*Correct\s*Answer:/i.test(l));
-            const distractorLine = lines.find(l => /^-?\s*Distractors?:/i.test(l));
-
-            let correctAnswer = '';
-            let distractors = [];
-
-            if (answerLine) {
-                // Strip prefix, bold markers (**), and backticks
-                correctAnswer = answerLine
-                    .replace(/^-?\s*Correct\s*Answer:\s*/i, '')
-                    .replace(/\*\*/g, '')
-                    .replace(/`/g, '')
-                    .trim();
-
-                if (distractorLine) {
-                    const rawDistractors = distractorLine.replace(/^-?\s*Distractors?:\s*/i, '');
-                    // Handle both " / " and "," separators
-                    if (rawDistractors.includes(' / ')) {
-                        distractors = rawDistractors.split(' / ').map(d => d.replace(/\*\*/g, '').trim().replace(/\.$/, ''));
-                    } else {
-                        distractors = rawDistractors.split(',').map(d => d.replace(/\*\*/g, '').trim().replace(/\.$/, ''));
-                    }
-                }
-            } else {
-                // Fallback: support unstructured options (e.g. "a) option", "1. option")
-                const optionLines = lines.filter(l => /^(\d+[\.\)]|[a-dA-D][\.\)])\s+/.test(l));
-                if (optionLines.length >= 2) {
-                    correctAnswer = optionLines[0].replace(/^(\d+[\.\)]|[a-dA-D][\.\)])\s+/, '').replace(/\*\*/g, '').trim();
-                    distractors = optionLines.slice(1).map(opt =>
-                        opt.replace(/^(\d+[\.\)]|[a-dA-D][\.\)])\s+/, '').replace(/\*\*/g, '').trim()
-                    );
-                }
-            }
+        for (const q of quizArray) {
+            const questionText = (q.question || '').trim();
+            const correctAnswer = (q.correct_answer || '').trim();
+            const distractors = Array.isArray(q.distractors)
+                ? q.distractors.map(d => (d || '').trim()).filter(Boolean)
+                : [];
 
             // Skip invalid questions (missing text, answer, or distractors)
             if (!questionText || !correctAnswer || distractors.length === 0) continue;
@@ -199,8 +154,7 @@ class ContentGenerationService {
                 payload,
                 {
                     headers: {
-                        'Content-Type': 'application/json',
-                        ...(CONTENT_API_KEY && { 'X-API-Key': CONTENT_API_KEY })
+                        'Content-Type': 'application/json'
                     },
                     timeout: 300000 // 300s (5 min) — Azure cold start + AI generation
                 }
@@ -222,8 +176,8 @@ class ContentGenerationService {
      *
      * Flow:
      * 1. Build UserParameters from student DB profile
-     * 2. Call POST /api/generate-lesson → { status: 'success', data: '<markdown>' }
-     * 3. Parse markdown: lesson content (before ## Quiz:) + questions (Correct Answer / Distractors)
+     * 2. Call POST /api/generate-lesson → { status: 'success', data: { content, quiz } }
+     * 3. Parse structured response: lesson content from data.content + questions from data.quiz
      * 4. Store ONLY the generated content & questions (topic name from AI is NOT used)
      *
      * Storage Logic (per API response):

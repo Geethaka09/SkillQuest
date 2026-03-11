@@ -429,8 +429,14 @@ const DashboardPage = () => {
                     <div className="module-badge">CURRENT MODULE</div>
                     <div className="module-content">
                         <div className="module-info">
-                            <h2>{progressData.currentModule?.name || 'All caught up!'}</h2>
-                            <p>Week {progressData.currentModule?.weekNumber || '-'}</p>
+                            <h2>{progressData.currentModule ? `Week ${progressData.currentModule.weekNumber} Module` : 'All caught up!'}</h2>
+                            {progressData.currentModule?.name && (
+                                <div className="module-tags">
+                                    {progressData.currentModule.name.split(',').map((tag, i) => (
+                                        <span key={i} className="tag-chip">{tag.trim()}</span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="module-action">
                             <div className="lesson-info">
