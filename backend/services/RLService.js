@@ -192,7 +192,7 @@ class RLService {
 
             const response = await axios.post(`${RL_API_URL}/predict`, metrics, {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000
+                timeout: 90000 // Increased from 30s to 90s for Azure cold starts
             });
 
             const { action_id, interaction_id, risk_score } = response.data;

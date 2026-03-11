@@ -90,6 +90,30 @@ const login = async (req, res) => {
             { expiresIn: tokenExpiry }
         );
 
+        // ─── Trigger Background Content Generation ───
+        // Fire-and-forget: If the student has an active plan, this will resume 
+        // generation for any steps that are still missing content (e.g. Week 2+)
+        try {
+            const [planRows] = await pool.execute(
+                'SELECT plan_id FROM study_plan WHERE student_ID = ? LIMIT 1',
+                [student.student_ID]
+            );
+            if (planRows.length > 0) {
+                const planId = planRows[0].plan_id;
+                const ContentGenerationService = require('../services/ContentGenerationService');
+                
+                ContentGenerationService.fillPlanContent(student.student_ID, planId)
+                    .then(r => {
+                        if (r.stepsFilled > 0) {
+                            console.log(`[Login] Background generation resumed: ${r.stepsFilled} steps filled.`);
+                        }
+                    })
+                    .catch(e => console.error('[Login] Background generation error:', e.message));
+            }
+        } catch (err) {
+            console.error('[Login] Failed to check for plan for background generation:', err.message);
+        }
+
         res.json({
             success: true,
             message: 'Login successful',
