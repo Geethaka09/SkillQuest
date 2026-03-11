@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { getStepContent, submitStepQuiz } = require('../controllers/trainingSessionController');
+const { getStepContent, submitStepQuiz, saveStepResponse } = require('../controllers/trainingSessionController');
 
 /**
  * Training Session Routes (P14 → P17)
@@ -17,6 +17,11 @@ const { getStepContent, submitStepQuiz } = require('../controllers/trainingSessi
 // @desc    Get specific learning step content (P14, P15)
 // @access  Private
 router.get('/step/:weekNumber/:stepId', auth, getStepContent);
+
+// @route   POST /api/study-plan/save-response
+// @desc    Auto-save a single question response (fire-and-forget from frontend)
+// @access  Private
+router.post('/save-response', auth, saveStepResponse);
 
 // @route   POST /api/study-plan/submit-quiz
 // @desc    Submit step quiz & handle progression (P15, P16, P17)

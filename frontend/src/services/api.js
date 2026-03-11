@@ -247,6 +247,11 @@ export const studyPlanService = {
     submitQuiz: async (data) => {
         const response = await api.post('/study-plan/submit-quiz', data);
         return response.data;
+    },
+
+    saveStepResponse: async (data) => {
+        const response = await api.post('/study-plan/save-response', data);
+        return response.data;
     }
 };
 

@@ -59,6 +59,17 @@ const StepQuizPage = () => {
             const response = await studyPlanService.getStepContent(weekNumber, stepId, recId);
             if (response.success) {
                 setStepData(response);
+
+                // Restore previously saved answers
+                const savedAnswers = {};
+                response.questions.forEach(q => {
+                    if (q.savedResponse) {
+                        savedAnswers[q.genQID] = q.savedResponse;
+                    }
+                });
+                if (Object.keys(savedAnswers).length > 0) {
+                    setAnswers(savedAnswers);
+                }
             } else {
                 setError('Failed to load quiz');
             }
@@ -75,6 +86,17 @@ const StepQuizPage = () => {
             ...prev,
             [genQID]: answer
         }));
+
+        // Fire-and-forget: save response to backend immediately
+        if (stepData) {
+            studyPlanService.saveStepResponse({
+                planId: stepData.planId,
+                weekNumber: parseInt(weekNumber),
+                stepId: parseInt(stepId),
+                genQID,
+                response: answer
+            }).catch(err => console.error('Failed to save response:', err));
+        }
     };
 
     const handleNext = () => {

@@ -40,7 +40,8 @@ const getStepContent = async (req, res) => {
                 options,
                 correct_answer,
                 step_status,
-                attempt_count
+                attempt_count,
+                user_response
              FROM study_plan 
              WHERE student_ID = ? 
              AND week_number = ? 
@@ -62,7 +63,8 @@ const getStepContent = async (req, res) => {
             genQID: row.gen_QID,
             question: row.question,
             options: row.options,
-            correctAnswer: row.correct_answer
+            correctAnswer: row.correct_answer,
+            savedResponse: row.user_response || null
         }));
 
         res.json({
@@ -340,4 +342,42 @@ const submitStepQuiz = async (req, res) => {
     }
 };
 
-module.exports = { getStepContent, submitStepQuiz };
+/**
+ * Save Step Response (Auto-save on Next/Prev/Select)
+ * 
+ * Saves or updates the student's selected answer for a single question
+ * in the study_plan table. This is a fire-and-forget call from the frontend.
+ */
+const saveStepResponse = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { planId, weekNumber, stepId, genQID, response } = req.body;
+
+        if (!planId || !genQID || !response) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: planId, genQID, response'
+            });
+        }
+
+        await pool.execute(
+            `UPDATE study_plan 
+             SET user_response = ? 
+             WHERE plan_id = ? AND student_ID = ? AND week_number = ? AND step_ID = ? AND gen_QID = ?`,
+            [response, planId, studentId, weekNumber, stepId, genQID]
+        );
+
+        res.json({
+            success: true,
+            message: 'Response saved'
+        });
+    } catch (error) {
+        console.error('Save step response error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save response'
+        });
+    }
+};
+
+module.exports = { getStepContent, submitStepQuiz, saveStepResponse };
