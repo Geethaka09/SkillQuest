@@ -252,6 +252,11 @@ export const studyPlanService = {
     saveStepResponse: async (data) => {
         const response = await api.post('/study-plan/save-response', data);
         return response.data;
+    },
+
+    clearStepResponses: async (data) => {
+        const response = await api.post('/study-plan/clear-responses', data);
+        return response.data;
     }
 };
 

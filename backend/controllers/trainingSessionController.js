@@ -353,19 +353,23 @@ const saveStepResponse = async (req, res) => {
         const studentId = req.user.id;
         const { planId, weekNumber, stepId, genQID, response } = req.body;
 
+        console.log(`[saveStepResponse] received for stud:${studentId} planId:${planId} qid:${genQID} ans:${response}`);
+
         if (!planId || !genQID || !response) {
+            console.error('[saveStepResponse] 400 Bad Request. Missing fields:', req.body);
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: planId, genQID, response'
             });
         }
 
-        await pool.execute(
+        const [result] = await pool.execute(
             `UPDATE study_plan 
              SET user_response = ? 
              WHERE plan_id = ? AND student_ID = ? AND week_number = ? AND step_ID = ? AND gen_QID = ?`,
             [response, planId, studentId, weekNumber, stepId, genQID]
         );
+        console.log(`[saveStepResponse] DB Update matched ${result.affectedRows} rows, changed ${result.changedRows} rows`);
 
         res.json({
             success: true,
@@ -380,4 +384,31 @@ const saveStepResponse = async (req, res) => {
     }
 };
 
-module.exports = { getStepContent, submitStepQuiz, saveStepResponse };
+/**
+ * Clear Step Responses
+ * Wipes out all saved user_response for a step (used on Try Again)
+ */
+const clearStepResponses = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { planId, weekNumber, stepId } = req.body;
+
+        if (!planId || weekNumber === undefined || stepId === undefined) {
+            return res.status(400).json({ success: false, message: 'Missing fields' });
+        }
+
+        const [result] = await pool.execute(
+            `UPDATE study_plan 
+             SET user_response = NULL 
+             WHERE plan_id = ? AND student_ID = ? AND week_number = ? AND step_ID = ?`,
+            [planId, studentId, weekNumber, stepId]
+        );
+
+        res.json({ success: true, message: 'Responses cleared' });
+    } catch (error) {
+        console.error('Clear step response error:', error);
+        res.status(500).json({ success: false, message: 'Failed to clear responses' });
+    }
+};
+
+module.exports = { getStepContent, submitStepQuiz, saveStepResponse, clearStepResponses };

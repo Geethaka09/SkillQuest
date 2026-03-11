@@ -62,13 +62,26 @@ const StepQuizPage = () => {
 
                 // Restore previously saved answers
                 const savedAnswers = {};
-                response.questions.forEach(q => {
+                let firstUnansweredIndex = -1;
+                
+                response.questions.forEach((q, idx) => {
                     if (q.savedResponse) {
                         savedAnswers[q.genQID] = q.savedResponse;
+                    } else if (firstUnansweredIndex === -1) {
+                        firstUnansweredIndex = idx;
                     }
                 });
+                
                 if (Object.keys(savedAnswers).length > 0) {
                     setAnswers(savedAnswers);
+                }
+                
+                // Resume from the first unanswered question natively
+                if (firstUnansweredIndex !== -1) {
+                    setCurrentQuestionIndex(firstUnansweredIndex);
+                } else {
+                    // All answered, start at the end
+                    setCurrentQuestionIndex(response.questions.length > 0 ? response.questions.length - 1 : 0);
                 }
             } else {
                 setError('Failed to load quiz');
@@ -179,10 +192,21 @@ const StepQuizPage = () => {
         }
     };
 
-    const handleRetry = () => {
+    const handleRetry = async () => {
         setAnswers({});
         setResult(null);
         setCurrentQuestionIndex(0);
+        
+        // Clear backend tracking for retry
+        try {
+            await studyPlanService.clearStepResponses({
+                planId: stepData.planId,
+                weekNumber: parseInt(weekNumber),
+                stepId: parseInt(stepId)
+            });
+        } catch (err) {
+            console.error('Failed to clear previous responses on retry:', err);
+        }
     };
 
     const handleContinue = () => {
