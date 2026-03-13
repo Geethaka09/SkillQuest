@@ -197,6 +197,17 @@ const StepQuizPage = () => {
         setResult(null);
         setCurrentQuestionIndex(0);
         
+        // Clear saved responses visually from the stepData state
+        if (stepData && stepData.questions) {
+            setStepData(prev => ({
+                ...prev,
+                questions: prev.questions.map(q => ({
+                    ...q,
+                    savedResponse: null
+                }))
+            }));
+        }
+        
         // Clear backend tracking for retry
         try {
             await studyPlanService.clearStepResponses({
@@ -244,14 +255,16 @@ const StepQuizPage = () => {
 
     // Show result screen
     if (result) {
+        const isReview = result.passedWithReview;
+        
         return (
             <Layout>
                 <div className="quiz-container">
-                    <div className={`quiz-result ${result.passed ? 'passed' : 'failed'}`}>
+                    <div className={`quiz-result ${result.passed ? (isReview ? 'review' : 'passed') : 'failed'}`}>
                         <div className="result-icon">
-                            {result.passed ? '🎉' : '😞'}
+                            {result.passed ? (isReview ? '⚠️' : '🎉') : '😞'}
                         </div>
-                        <h1>{result.passed ? 'Congratulations!' : 'Not Quite!'}</h1>
+                        <h1>{result.passed ? (isReview ? 'Passed, but Review Needed!' : 'Congratulations!') : 'Not Quite!'}</h1>
                         <p className="result-message">{result.message}</p>
                         <div className="result-stats">
                             <div className="stat">
@@ -267,11 +280,34 @@ const StepQuizPage = () => {
                                 <span className="stat-label">Attempt</span>
                             </div>
                         </div>
+
+                        {/* Wrong Answers Summary for Pass with Review */}
+                        {isReview && result.wrongAnswersSummary && result.wrongAnswersSummary.length > 0 && (
+                            <div className="review-summary">
+                                <h3>Areas for Review:</h3>
+                                <ul className="review-list">
+                                    {result.wrongAnswersSummary.map((item, idx) => (
+                                        <li key={idx} className="review-item">
+                                            <p className="review-q"><strong>Q:</strong> {item.question}</p>
+                                            <p className="review-ans incorrect"><strong>Your Answer:</strong> {item.userAnswer}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         <div className="result-actions">
                             {result.passed ? (
-                                <button className="quiz-btn primary" onClick={() => navigate(`/learn/${weekNumber}`, { state: { resume: true } })}>
-                                    Continue Learning →
-                                </button>
+                                <>
+                                    <button className="quiz-btn primary" onClick={() => navigate(`/learn/${weekNumber}`, { state: { resume: true } })}>
+                                        Continue Learning →
+                                    </button>
+                                    {isReview && (
+                                        <button className="quiz-btn secondary" onClick={handleRetry}>
+                                            Try Again
+                                        </button>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     <button className="quiz-btn primary" onClick={handleRetry}>

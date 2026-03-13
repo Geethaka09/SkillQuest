@@ -136,7 +136,7 @@ const submitStepQuiz = async (req, res) => {
 
         // Get correct answers from study_plan
         const [questions] = await pool.execute(
-            `SELECT gen_QID, correct_answer, attempt_count 
+            `SELECT gen_QID, correct_answer, attempt_count, question 
              FROM study_plan 
              WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
             [studentId, weekNumber, stepId]
@@ -158,14 +158,17 @@ const submitStepQuiz = async (req, res) => {
         );
         const currentAttempt = (attemptRows[0].maxAttempt || 0) + 1;
 
-        // Create a map for correct answers
+        // Create a map for correct answers and questions
         const correctAnswersMap = {};
+        const questionsMap = {};
         questions.forEach(q => {
             correctAnswersMap[q.gen_QID] = q.correct_answer;
+            questionsMap[q.gen_QID] = q.question;
         });
 
         let allCorrect = true;
         let score = 0;
+        const wrongAnswersSummary = [];
 
         // Generate synchronized timestamps for all attempts
         const finishTime = new Date();
@@ -185,7 +188,15 @@ const submitStepQuiz = async (req, res) => {
             const isCorrect = answer.response === correctAnswer;
 
             if (isCorrect) score++;
-            else allCorrect = false;
+            else {
+                allCorrect = false;
+                wrongAnswersSummary.push({
+                    questionId: answer.genQID,
+                    question: questionsMap[answer.genQID],
+                    userAnswer: answer.response,
+                    correctAnswer: correctAnswer
+                });
+            }
 
             await pool.execute(
                 `INSERT INTO quiz_attempts 
@@ -203,21 +214,32 @@ const submitStepQuiz = async (req, res) => {
             [currentAttempt, studentId, weekNumber, stepId]
         );
 
+        // Clear draft responses upon submission so returning to the quiz provides a fresh start
+        await pool.execute(
+            `UPDATE study_plan 
+             SET user_response = NULL 
+             WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
+            [studentId, weekNumber, stepId]
+        );
+
         // ─── P15: Provide Feedback — Calculate Pass/Fail ───
         const totalQuestions = questions.length;
         const percentage = totalQuestions > 0 ? (score / totalQuestions) : 0;
-        const passed = percentage >= 0.6;
+        const passedStrong = percentage >= 0.8;
+        const passedWithReview = percentage >= 0.4 && percentage < 0.8;
+        const passed = passedStrong || passedWithReview;
 
         // ─── P17: Complete and Log Session Data ───
         if (passed) {
-            // Mark current step as COMPLETED
+            const newStatus = passedStrong ? 'COMPLETED' : 'NEEDS_REVIEW';
+            
+            // Mark current step as COMPLETED or NEEDS_REVIEW
             await pool.execute(
                 `UPDATE study_plan 
-                 SET step_status = 'COMPLETED', 
-                     start_date = ?, 
+                 SET step_status = ?, 
                      completed_at = NOW() 
                  WHERE student_ID = ? AND week_number = ? AND step_ID = ?`,
-                [attemptedAt, studentId, weekNumber, stepId]
+                [newStatus, studentId, weekNumber, stepId]
             );
 
             // Unlock next step (set to IN_PROGRESS)
@@ -241,7 +263,7 @@ const submitStepQuiz = async (req, res) => {
         const [weekSteps] = await pool.execute(
             `SELECT 
                 COUNT(DISTINCT step_ID) as total,
-                COUNT(DISTINCT CASE WHEN step_status = 'COMPLETED' THEN step_ID END) as completed
+                COUNT(DISTINCT CASE WHEN step_status IN ('COMPLETED', 'NEEDS_REVIEW') THEN step_ID END) as completed
              FROM study_plan WHERE student_ID = ? AND week_number = ?`,
             [studentId, weekNumber]
         );
@@ -315,9 +337,22 @@ const submitStepQuiz = async (req, res) => {
             console.log('⚠️ Skipping RL: Quiz not passed');
         }
 
+        let message = '';
+        if (passedStrong) {
+            message = isWeekComplete 
+                ? 'Congratulations! You completed this week! Return to dashboard to continue.' 
+                : 'Congratulations! You passed. Next step unlocked!';
+        } else if (passedWithReview) {
+            message = 'You passed, but there are some areas to review. Next step unlocked!';
+        } else {
+            message = 'You need 80% to pass. Please review the material and try again.';
+        }
+
         res.json({
             success: true,
             passed: passed,
+            passedWithReview: passedWithReview || false,
+            wrongAnswersSummary: passedWithReview ? wrongAnswersSummary : [],
             score: score,
             totalQuestions: totalQuestions,
             attemptNumber: currentAttempt,
@@ -326,11 +361,7 @@ const submitStepQuiz = async (req, res) => {
             nextStepId: nextStepExists ? nextStepId : null,
             weekNumber: weekNumber,
             rlRecommendation: rlRecommendation,
-            message: passed
-                ? (isWeekComplete
-                    ? 'Congratulations! You completed this week! Return to dashboard to continue.'
-                    : 'Congratulations! You passed. Next step unlocked!')
-                : 'You need 60% to pass. Please try again.'
+            message: message
         });
 
     } catch (error) {

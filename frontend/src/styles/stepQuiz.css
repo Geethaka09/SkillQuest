@@ -351,6 +351,65 @@
     min-width: 180px;
 }
 
+/* Review Summary */
+.quiz-result.review {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.review-summary {
+    margin: 24px 0 32px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+
+.review-summary h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #1e293b;
+    font-size: 1.25rem;
+}
+
+.review-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-item {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.review-q {
+    font-weight: 500;
+    color: #334155;
+    margin: 0 0 8px 0;
+}
+
+.review-ans {
+    margin: 4px 0;
+    font-size: 0.9rem;
+}
+
+.review-ans.incorrect {
+    color: #dc2626;
+}
+
+.review-ans.correct {
+    color: #16a34a;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .quiz-header {

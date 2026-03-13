@@ -175,6 +175,11 @@
     background: #eff6ff;
 }
 
+.step-card.needs_review {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
 .step-card-number {
     width: 56px;
     height: 56px;
@@ -196,6 +201,11 @@
 
 .step-card.in_progress .step-card-number {
     background: #3b82f6;
+    color: white;
+}
+
+.step-card.needs_review .step-card-number {
+    background: #f59e0b;
     color: white;
 }
 
@@ -231,6 +241,11 @@
 
 .step-card.in_progress .step-status-text {
     color: #2563eb;
+    font-weight: 500;
+}
+
+.step-card.needs_review .step-status-text {
+    color: #b45309;
     font-weight: 500;
 }
 
@@ -357,6 +372,10 @@
 
 .step-nav-item.completed {
     color: #10b981;
+}
+
+.step-nav-item.needs_review {
+    color: #f59e0b;
 }
 
 .step-nav-item.locked {

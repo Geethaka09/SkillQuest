@@ -82,9 +82,11 @@ const LearningPage = () => {
                 // Auto-open if coming from quiz (resume: true)
                 if (location.state?.resume) {
                     // Find first non-completed step or first step
-                    const activeIndex = response.steps.findIndex(s => s.status !== 'COMPLETED') !== -1
-                        ? response.steps.findIndex(s => s.status !== 'COMPLETED')
-                        : 0;
+                    const activeIndex = response.steps.findIndex(s => s.status !== 'COMPLETED' && s.status !== 'NEEDS_REVIEW') !== -1
+                        ? response.steps.findIndex(s => s.status !== 'COMPLETED' && s.status !== 'NEEDS_REVIEW')
+                        : response.steps.findIndex(s => s.status === 'NEEDS_REVIEW') !== -1
+                            ? response.steps.findIndex(s => s.status === 'NEEDS_REVIEW')
+                            : 0;
 
                     setCurrentStepIndex(activeIndex);
                     setViewMode('learning');
@@ -221,13 +223,14 @@ const LearningPage = () => {
                                     <div className="step-card-number">
                                         {displayStatus === 'COMPLETED' && <span className="check-icon">✓</span>}
                                         {isLocked && <span className="lock-icon">🔒</span>}
-                                        {(displayStatus === 'IN_PROGRESS' || (index === 0 && !isLocked && displayStatus !== 'COMPLETED')) && <span className="step-num">{step.stepId}</span>}
+                                        {(displayStatus === 'IN_PROGRESS' || displayStatus === 'NEEDS_REVIEW' || (index === 0 && !isLocked && displayStatus !== 'COMPLETED')) && <span className="step-num">{step.stepId}</span>}
                                     </div>
                                     <div className="step-card-content">
                                         <h3>{step.stepName || `Step ${step.stepId}`}</h3>
                                         <p className="step-status-text">
                                             {displayStatus === 'COMPLETED' && 'Completed'}
                                             {displayStatus === 'IN_PROGRESS' && 'Continue learning'}
+                                            {displayStatus === 'NEEDS_REVIEW' && 'Needs Review'}
                                             {isLocked && 'Complete previous step to unlock'}
                                         </p>
                                     </div>
@@ -269,6 +272,7 @@ const LearningPage = () => {
                                         <span className="step-icon">
                                             {displayStatus === 'COMPLETED' && '✓'}
                                             {displayStatus === 'IN_PROGRESS' && '▶'}
+                                            {displayStatus === 'NEEDS_REVIEW' && '⚠️'}
                                             {isLocked && '🔒'}
                                         </span>
                                         <span className="step-label">{step.stepName || `Step ${step.stepId}`}</span>
@@ -293,6 +297,9 @@ const LearningPage = () => {
                                 )}
                                 {currentStep.status === 'IN_PROGRESS' && (
                                     <span className="status-badge in-progress">📖 In Progress</span>
+                                )}
+                                {currentStep.status === 'NEEDS_REVIEW' && (
+                                    <span className="status-badge review" style={{ background: '#fffbeb', color: '#b45309', padding: '6px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' }}>⚠️ Needs Review</span>
                                 )}
                             </div>
                         </div>
