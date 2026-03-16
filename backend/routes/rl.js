@@ -4,7 +4,9 @@ const auth = require('../middleware/auth');
 const {
     getRecommendation,
     getMetrics,
-    sendFeedback
+    sendFeedback,
+    trackEngagement,
+    getInteractionHistory
 } = require('../controllers/rlController');
 
 /**
@@ -13,7 +15,7 @@ const {
  */
 
 // @route   GET /api/rl/recommend
-// @desc    Get personalized action (e.g., Badge Injection)
+// @desc    Get personalized action (e.g., Badge Injection). Auto-saves interaction to DB.
 // @access  Private
 router.get('/recommend', auth, getRecommendation);
 
@@ -22,9 +24,19 @@ router.get('/recommend', auth, getRecommendation);
 // @access  Private
 router.get('/metrics', auth, getMetrics);
 
+// @route   GET /api/rl/interactions
+// @desc    View RL interaction history for debugging/analytics
+// @access  Private
+router.get('/interactions', auth, getInteractionHistory);
+
 // @route   POST /api/rl/feedback
-// @desc    Report user engagement (+1/-0.1 reward)
+// @desc    Report user engagement — auto-resolves interaction_id from DB if not provided
 // @access  Private
 router.post('/feedback', auth, sendFeedback);
+
+// @route   POST /api/rl/engage
+// @desc    Track engagement: frontend calls this when user interacts with an RL action
+// @access  Private
+router.post('/engage', auth, trackEngagement);
 
 module.exports = router;

@@ -5,13 +5,23 @@
  * Responsibilities:
  * 1. Data Aggregation: Collects 10+ metrics from SQL to build the Student State Vector.
  * 2. Prediction: Sends state to RL Agent -> Gets optimized Action (e.g., "Badge Injection").
- * 3. Feedback Loop: Reports back whether the student engagd with the action to train the model.
+ * 3. Persistence: Saves every interaction_id in the DB for reliable tracking.
+ * 4. Feedback Loop: Reports back whether the student engaged with the action to train the model.
  */
 const axios = require('axios');
 const pool = require('../config/database');
 
 // RL API Base URL - update this when deploying
 const RL_API_URL = process.env.RL_API_URL || 'http://localhost:5001';
+
+// Maps action_id numbers to codes the frontend uses
+const ACTION_MAP = {
+    0: { action_code: 'STANDARD_XP', action_name: 'Standard XP', description: 'Award normal XP points for activity' },
+    1: { action_code: 'MULTIPLIER_BOOST', action_name: 'Multiplier Boost', description: 'Apply XP multiplier (2x, 3x) next activity' },
+    2: { action_code: 'BADGE_INJECTION', action_name: 'Badge Injection', description: 'Award a surprise badge to boost motivation' },
+    3: { action_code: 'RANK_COMPARISON', action_name: 'Rank Comparison', description: "Show 'X points to reach Top N' message" },
+    4: { action_code: 'EXTRA_GOALS', action_name: 'Extra Goals', description: 'Set additional achievable micro-goals' }
+};
 
 class RLService {
     /**
@@ -172,21 +182,162 @@ class RLService {
         };
     }
 
+    // =========================================================================
+    // DATABASE PERSISTENCE METHODS (rl_interactions table)
+    // =========================================================================
+
+    /**
+     * Save an RL interaction to the database for tracking.
+     * Called automatically after every successful /predict call.
+     * 
+     * @param {string} studentId - Student ID
+     * @param {string} interactionId - UUID from the RL API response
+     * @param {number} actionId - Action number (0-4)
+     * @param {string} actionCode - Mapped action code (e.g., 'BADGE_INJECTION')
+     * @param {number|null} riskScore - Risk score from RL API
+     * @returns {Promise<Object>} The inserted row info
+     */
+    static async saveInteraction(studentId, interactionId, actionId, actionCode, riskScore = null) {
+        try {
+            const [result] = await pool.execute(
+                `INSERT INTO rl_interactions 
+                    (student_ID, interaction_id, action_id, action_code, risk_score, expires_at)
+                 VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
+                [studentId, interactionId, actionId, actionCode, riskScore]
+            );
+
+            console.log(`📝 Saved RL interaction: ${interactionId} for student ${studentId} (action: ${actionCode})`);
+            return { id: result.insertId, interaction_id: interactionId };
+        } catch (error) {
+            console.error('Failed to save RL interaction:', error.message);
+            // Non-fatal: don't break the recommendation flow if DB save fails
+            return null;
+        }
+    }
+
+    /**
+     * Get the most recent pending (non-engaged, non-expired) interaction for a student.
+     * Used when the frontend doesn't send an interaction_id — we look it up ourselves.
+     * 
+     * @param {string} studentId - Student ID
+     * @returns {Promise<Object|null>} The pending interaction or null
+     */
+    static async getPendingInteraction(studentId) {
+        try {
+            const [rows] = await pool.execute(
+                `SELECT * FROM rl_interactions 
+                 WHERE student_ID = ? 
+                   AND engaged IS NULL 
+                   AND (expires_at IS NULL OR expires_at > NOW())
+                 ORDER BY created_at DESC 
+                 LIMIT 1`,
+                [studentId]
+            );
+
+            return rows.length > 0 ? rows[0] : null;
+        } catch (error) {
+            console.error('Failed to get pending interaction:', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Mark an interaction as engaged/ignored and send feedback to the RL API.
+     * This is the core of the reward phase.
+     * 
+     * @param {string} interactionId - The interaction UUID
+     * @param {boolean} engaged - Whether the user engaged with the action
+     * @returns {Promise<Object>} Result with feedback status
+     */
+    static async markEngaged(interactionId, engaged) {
+        try {
+            // 1. Update the interaction record
+            await pool.execute(
+                `UPDATE rl_interactions 
+                 SET engaged = ?, engaged_at = NOW() 
+                 WHERE interaction_id = ? AND engaged IS NULL`,
+                [engaged ? 1 : 0, interactionId]
+            );
+
+            // 2. Send feedback to the RL API
+            let feedbackResult = null;
+            let feedbackSent = false;
+
+            try {
+                const response = await axios.post(`${RL_API_URL}/feedback`, {
+                    interaction_id: interactionId,
+                    engaged: engaged ? true : false
+                }, {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 10000
+                });
+
+                feedbackResult = response.data;
+                feedbackSent = true;
+                console.log(`✅ RL feedback sent for ${interactionId}: engaged=${engaged}`);
+            } catch (apiError) {
+                console.error(`⚠️ RL feedback API failed for ${interactionId}:`, apiError.message);
+                // Feedback failed but we still recorded the engagement — can retry later
+            }
+
+            // 3. Mark feedback_sent status in DB
+            await pool.execute(
+                `UPDATE rl_interactions SET feedback_sent = ? WHERE interaction_id = ?`,
+                [feedbackSent ? 1 : 0, interactionId]
+            );
+
+            return {
+                success: true,
+                interaction_id: interactionId,
+                engaged,
+                feedback_sent: feedbackSent,
+                feedback: feedbackResult
+            };
+        } catch (error) {
+            console.error('Failed to mark interaction as engaged:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get interaction history for a student (for analytics/debugging).
+     * 
+     * @param {string} studentId - Student ID
+     * @param {number} limit - Max rows to return
+     * @returns {Promise<Array>} List of interactions
+     */
+    static async getInteractionHistory(studentId, limit = 20) {
+        try {
+            const [rows] = await pool.execute(
+                `SELECT * FROM rl_interactions 
+                 WHERE student_ID = ? 
+                 ORDER BY created_at DESC 
+                 LIMIT ?`,
+                [studentId, limit]
+            );
+            return rows;
+        } catch (error) {
+            console.error('Failed to get interaction history:', error.message);
+            return [];
+        }
+    }
+
+    // =========================================================================
+    // RL API COMMUNICATION METHODS
+    // =========================================================================
+
     /**
      * Call RL API to get action recommendation.
      * The updated API returns only action_id (0-4) + interaction_id.
      * We map action_id → action_code/name here so the frontend keeps working.
+     * 
+     * ENHANCED: Now auto-saves the interaction to the database after a successful
+     * API call, so the feedback loop is backed by the DB, not just localStorage.
      */
     static async getRecommendation(studentId) {
-        // Map action_id numbers to codes the frontend uses
-        const ACTION_MAP = {
-            0: { action_code: 'STANDARD_XP', action_name: 'Standard XP', description: 'Award normal XP points for activity' },
-            1: { action_code: 'MULTIPLIER_BOOST', action_name: 'Multiplier Boost', description: 'Apply XP multiplier (2x, 3x) next activity' },
-            2: { action_code: 'BADGE_INJECTION', action_name: 'Badge Injection', description: 'Award a surprise badge to boost motivation' },
-            3: { action_code: 'RANK_COMPARISON', action_name: 'Rank Comparison', description: "Show 'X points to reach Top N' message" },
-            4: { action_code: 'EXTRA_GOALS', action_name: 'Extra Goals', description: 'Set additional achievable micro-goals' }
-        };
-
         try {
             const metrics = await this.getStudentMetrics(studentId);
 
@@ -197,6 +348,15 @@ class RLService {
 
             const { action_id, interaction_id, risk_score } = response.data;
             const action = ACTION_MAP[action_id] || ACTION_MAP[0];
+
+            // === NEW: Persist the interaction in the database ===
+            await this.saveInteraction(
+                studentId,
+                interaction_id,
+                action_id,
+                action.action_code,
+                risk_score
+            );
 
             return {
                 success: true,
@@ -215,26 +375,36 @@ class RLService {
     }
 
     /**
-     * Send feedback to RL API for training
+     * Send feedback to RL API for training.
+     * 
+     * ENHANCED: If interactionId is not provided by the frontend, automatically
+     * looks up the most recent pending interaction from the database.
+     * Also marks the DB record as feedback_sent to prevent duplicates.
+     * 
      * @param {string} studentId - Student ID
      * @param {boolean} engaged - Whether user engaged with the recommendation
-     * @param {string|null} interactionId - The interaction_id returned from /predict
+     * @param {string|null} interactionId - The interaction_id (optional — auto-looked up from DB)
      * @returns {Promise<Object>} Feedback response
      */
     static async sendFeedback(studentId, engaged, interactionId = null) {
         try {
-            const response = await axios.post(`${RL_API_URL}/feedback`, {
-                interaction_id: interactionId,   // ID returned from /predict
-                engaged: engaged ? true : false  // Boolean: did the user engage?
-            }, {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 5000
-            });
+            // If no interactionId provided, look it up from DB
+            if (!interactionId) {
+                const pending = await this.getPendingInteraction(studentId);
+                if (pending) {
+                    interactionId = pending.interaction_id;
+                    console.log(`🔍 Auto-resolved interaction_id from DB: ${interactionId}`);
+                } else {
+                    console.warn(`⚠️ No pending interaction found for student ${studentId}`);
+                    return {
+                        success: false,
+                        error: 'No pending interaction found. The interaction may have expired.'
+                    };
+                }
+            }
 
-            return {
-                success: true,
-                feedback: response.data
-            };
+            // Use the centralized markEngaged method which handles both DB + API
+            return await this.markEngaged(interactionId, engaged);
         } catch (error) {
             console.error('RL Feedback Error:', error.message);
             return {
