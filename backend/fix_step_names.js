@@ -44,15 +44,14 @@ async function fixStepNames() {
                     continue;
                 }
 
-                // Map Day N -> topic
+                // Map day number -> topic (new API returns array of {day, category, topic})
                 const dayTopics = {};
-                for (const [dayKey, dayData] of Object.entries(weeklyPlan)) {
-                    const dayMatch = dayKey.match(/(\d+)/);
-                    const dayNum = dayMatch ? parseInt(dayMatch[1]) : null;
+                for (const dayData of weeklyPlan) {
+                    const dayNum = dayData.day;
                     if (dayNum) {
                         dayTopics[dayNum] = {
-                            category: dayData.Category || 'General',
-                            topic: dayData.Topic || dayKey
+                            category: dayData.category || 'General',
+                            topic: dayData.topic || `Day ${dayNum}`
                         };
                     }
                 }

@@ -306,9 +306,9 @@ const submitStepQuiz = async (req, res) => {
                             rlRecommendation = {
                                 action_code: 'BADGE_INJECTION',
                                 badge: {
-                                    badge_ID: badge.badge_ID,
-                                    name: badge.name,
-                                    description: badge.description,
+                                    badge_id: badge.badge_id,
+                                    name: badge.badge_name,
+                                    description: badge.badge_description,
                                     icon_url: badge.icon_url
                                 }
                             };

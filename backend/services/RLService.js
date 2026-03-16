@@ -424,8 +424,8 @@ class RLService {
             // Get badges the student doesn't have yet
             const [availableBadges] = await pool.execute(`
                 SELECT b.* FROM badges b
-                WHERE b.badge_ID NOT IN (
-                    SELECT badge_ID FROM student_badges WHERE student_ID = ?
+                WHERE b.badge_id NOT IN (
+                    SELECT badge_id FROM student_badges WHERE student_ID = ?
                 )
                 LIMIT 10
             `, [studentId]);
@@ -440,11 +440,11 @@ class RLService {
 
             // Award badge to student
             await pool.execute(`
-                INSERT INTO student_badges (student_ID, badge_ID, awarded_at)
+                INSERT INTO student_badges (student_ID, badge_id, awarded_at)
                 VALUES (?, ?, NOW())
-            `, [studentId, randomBadge.badge_ID]);
+            `, [studentId, randomBadge.badge_id]);
 
-            console.log(`Awarded badge ${randomBadge.badge_ID} to student ${studentId}`);
+            console.log(`Awarded badge ${randomBadge.badge_id} to student ${studentId}`);
             return randomBadge;
         } catch (error) {
             console.error('Badge selection error:', error.message);

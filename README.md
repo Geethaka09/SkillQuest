@@ -52,6 +52,7 @@ Before running the project, make sure you have the following installed:
 3. **Run Migrations**: To enable email verification and password reset features, run the following scripts in your database:
    - `backend/migrations/add_verification_cols.sql`
    - `backend/migrations/add_reset_password_cols.sql`
+   - `backend/migrations/create_rl_interactions_table.sql`
    
    *Alternatively, you can use the provided migration runner:*
    ```bash
@@ -89,6 +90,10 @@ cd SkillQuest
    DB_PORT=3306
    JWT_SECRET=your_secret_key_here
    PORT=5000
+   
+   # External APIs
+   RL_API_URL=http://localhost:5001
+   CONTENT_API_URL=your_content_api_url
    
    # Email Configuration (Nodemailer)
    SMTP_HOST=smtp.gmail.com
@@ -215,6 +220,11 @@ The `.env` file contains sensitive information and should **NEVER** be committed
 | GET | `/api/health` | Health check |
 | POST | `/api/auth/register` | User registration |
 | POST | `/api/auth/login` | User login |
+| GET | `/api/rl/recommend` | Get RL action recommendation |
+| POST | `/api/rl/engage` | Track frontend engagement with an RL action |
+| POST | `/api/rl/feedback` | Send reward feedback to Python RL model |
+| GET | `/api/rl/metrics` | Debug: Get user state vector metrics |
+| GET | `/api/rl/interactions`| Debug: View interaction history |
 
 ## 🐛 Troubleshooting
 

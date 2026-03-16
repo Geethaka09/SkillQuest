@@ -1,15 +1,23 @@
 const axios = require('axios');
 const pool = require('../config/database');
 
-const PLAN_GENERATOR_API_URL = 'https://amayasanduni-plan-generator.hf.space';
+// RL Personalization API URL (replaces old Plan Generator API)
+const RL_PERSONALIZE_API_URL = process.env.RL_PERSONALIZE_API_URL || 'https://amayasanduni-personalization-model.hf.space';
 
 class PlanGeneratorService {
     /**
-     * Builds the payload from the student's database record
+     * Builds the payload for the RL Personalization API from the student's database record.
+     * 
+     * New API expects:
+     *   current_scores: [float, float, float]  (at_score, ct_score, p_score)
+     *   user_level: string                      ("Beginner", "Intermediate", "Advanced")
+     *   quiz_score: float                       (0.0–1.0, average quiz accuracy)
+     *   engagement: float                       (0.0–1.0, engagement metric)
      */
     static async buildPayload(studentId) {
+        // 1. Get student basic info (scores + level)
         const [rows] = await pool.execute(
-            `SELECT at_score, ct_score, p_score, status, level 
+            `SELECT at_score, ct_score, p_score, level 
              FROM student 
              WHERE student_ID = ?`,
             [studentId]
@@ -21,55 +29,77 @@ class PlanGeneratorService {
 
         const s = rows[0];
 
-        // The user suggested an array in an array, though OpenAPI says array of ints.
-        // If passing [[at_score, ct_score, p_score]] causes a validation error in FastAPI, 
-        // we'll need to change it to [at_score, ct_score, p_score].
-        // But for now we match the user's literal request or their likely intent.
-        // We'll pass [at_score, ct_score, p_score] as that matches OpenAPI [integer, integer, integer].
-        const scores = [
-            s.at_score || 0,
-            s.ct_score || 0,
-            s.p_score || 0
+        // current_scores as floats
+        const current_scores = [
+            parseFloat(s.at_score) || 0.0,
+            parseFloat(s.ct_score) || 0.0,
+            parseFloat(s.p_score) || 0.0
         ];
 
-        // If the user meant "scores: [[at, ct, p]]", we can adjust if needed.
-        // Let's stick strictly to what FastAPI schema said: "items": {"type": "integer"} -> 1D array.
-        // But the user said: "provide a array in a array" -> `scores: [[s.at...]]`. 
-        // Let's pass what OpenAI schema expected: 1D array, but if FastAPI expects 2D
-        // we might fail validation. I'll write logic that passes a 1D array for now.
-        // Actually, user explicitly said: "a array in a array". I'll use [[at,ct,p]].
-        // Wait, schema was: {"scores":{"items":{"type":"integer"},"type":"array"}} => [1, 2, 3].
-        // If I pass [[1, 2, 3]] it will say `type` error. I will pass `[ ... ]`.
+        // 2. Calculate quiz_score (average accuracy across all quiz attempts, 0.0–1.0)
+        const [accuracyRows] = await pool.execute(
+            `SELECT AVG(sub.accuracy) as quiz_accuracy FROM (
+                SELECT week_number, step_ID, attempt_number, 
+                       SUM(is_correct) / COUNT(*) as accuracy
+                FROM quiz_attempts WHERE student_ID = ?
+                GROUP BY week_number, step_ID, attempt_number
+            ) sub`,
+            [studentId]
+        );
+        const quiz_score = parseFloat(accuracyRows[0]?.quiz_accuracy) || 0.0;
+
+        // 3. Calculate engagement (modules completed / total modules, 0.0–1.0)
+        const [engagementRows] = await pool.execute(
+            `SELECT 
+                COUNT(CASE WHEN step_status = 'COMPLETED' THEN 1 END) as completed,
+                COUNT(*) as total
+             FROM study_plan 
+             WHERE student_ID = ?`,
+            [studentId]
+        );
+        const completed = engagementRows[0]?.completed || 0;
+        const total = engagementRows[0]?.total || 1; // avoid division by zero
+        const engagement = Math.min(1.0, completed / total);
+
+        // Capitalize first letter of level
+        const user_level = s.level
+            ? s.level.charAt(0).toUpperCase() + s.level.slice(1)
+            : 'Beginner';
 
         return {
-            scores: scores,
-            status: s.status || 0,
-            user_level: s.level || 'beginner'
+            current_scores,
+            user_level,
+            quiz_score: Math.round(quiz_score * 100) / 100,   // round to 2 decimals
+            engagement: Math.round(engagement * 100) / 100
         };
     }
 
     /**
-     * Calls the external Plan Generator API
+     * Calls the RL Personalization API to generate a weekly plan.
+     * 
+     * POST /generate-plan
+     * Response: { monitor_report: {...}, weekly_plan: [{day, category, topic}, ...] }
      */
     static async generateWeekPlan(studentId) {
         try {
-            // Build the specific payload for the API
             const payload = await this.buildPayload(studentId);
-
-            // Just in case the user meant 2D array, let's keep it as 1D based on OpenAPI,
-            // but if the user explicitly meant [[...]], we can change it later.
-            // Let's assume the user meant "an array of those 3 scores". 
-            // "a array in a array in student table" could be a typo for "an array of the scores in the student table".
 
             console.log(`[PlanGen] Requesting plan for ${studentId} with payload:`, JSON.stringify(payload));
 
-            const response = await axios.post(`${PLAN_GENERATOR_API_URL}/generate-plan`, payload, {
+            const response = await axios.post(`${RL_PERSONALIZE_API_URL}/generate-plan`, payload, {
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                timeout: 120000 // 2 min timeout for HF Space cold starts
             });
 
             console.log('[PlanGen] ✅ Plan generated successfully');
+
+            // Log the monitor report if present
+            if (response.data.monitor_report) {
+                console.log('[PlanGen] Monitor Report:', JSON.stringify(response.data.monitor_report));
+            }
+
             return response.data;
 
         } catch (error) {
@@ -82,7 +112,10 @@ class PlanGeneratorService {
 
     /**
      * Saves one week's API response into the study_plan table.
-     * Creates 5 rows (one per day) with module_name=Category, step_name=Topic.
+     * Creates 5 rows (one per day) with module_name=category, step_name=topic.
+     *
+     * New API returns weekly_plan as an ARRAY: [{day: 1, category: "...", topic: "..."}, ...]
+     * Old API returned an OBJECT: {"Day 1": {Category: "...", Topic: "..."}, ...}
      *
      * @param {string} studentId
      * @param {number} weekNumber  - Which week (1–4)
@@ -98,14 +131,11 @@ class PlanGeneratorService {
 
         let rowsInserted = 0;
 
-        // Iterate Day 1 through Day 5
-        for (const [dayKey, dayData] of Object.entries(weeklyPlan)) {
-            // Extract day number from key like "Day 1" → 1
-            const dayMatch = dayKey.match(/(\d+)/);
-            const stepId = dayMatch ? parseInt(dayMatch[1]) : rowsInserted + 1;
-
-            const moduleName = dayData.Category || 'General';
-            const stepName = dayData.Topic || dayKey;
+        // New API: weekly_plan is an array of {day, category, topic}
+        for (const dayData of weeklyPlan) {
+            const stepId = dayData.day || (rowsInserted + 1);
+            const moduleName = dayData.category || 'General';
+            const stepName = dayData.topic || `Day ${stepId}`;
 
             // Only Week 1, Day 1 is IN_PROGRESS; everything else is LOCKED
             const stepStatus = (weekNumber === 1 && stepId === 1) ? 'IN_PROGRESS' : 'LOCKED';
@@ -126,7 +156,7 @@ class PlanGeneratorService {
     }
 
     /**
-     * Generates a full multi-week study plan by calling the Plan Generator API
+     * Generates a full multi-week study plan by calling the RL Personalization API
      * once per week, and storing each week's result in the study_plan table.
      *
      * @param {string} studentId
@@ -135,7 +165,6 @@ class PlanGeneratorService {
      */
     static async generateFullPlan(studentId, totalWeeks = 4) {
         // Get next globally unique plan_id
-        // (student_ID is not part of the PRIMARY KEY, so plan_id must be unique across all students)
         const [planIdResult] = await pool.execute(
             'SELECT MAX(plan_id) as maxPlanId FROM study_plan'
         );
@@ -154,14 +183,14 @@ class PlanGeneratorService {
             weeklyPlans.push({
                 weekNumber: week,
                 rowsInserted,
-                plan: apiResponse.weekly_plan
+                plan: apiResponse.weekly_plan,
+                monitorReport: apiResponse.monitor_report || null
             });
         }
 
         console.log(`[PlanGen] ✅ Full plan complete: ${totalWeeks} weeks, ${totalRowsInserted} total rows`);
 
         // Chain content generation in background (fire-and-forget)
-        // Week 1 is generated first, then remaining weeks
         const ContentGenerationService = require('./ContentGenerationService');
         ContentGenerationService.fillPlanContent(studentId, planId)
             .then(r => console.log(`[PlanGen] ✅ Background content generation done: ${r.stepsFilled} steps, ${r.totalQuestionsGenerated} questions`))
@@ -172,4 +201,3 @@ class PlanGeneratorService {
 }
 
 module.exports = PlanGeneratorService;
-
